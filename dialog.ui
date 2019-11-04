@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Dialog</class>
+ <widget class="QDialog" name="Dialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>432</width>
+    <height>502</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Dialog</string>
+  </property>
+  <widget class="QTabWidget" name="tabWidget">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>10</y>
+     <width>411</width>
+     <height>431</height>
+    </rect>
+   </property>
+   <property name="currentIndex">
+    <number>0</number>
+   </property>
+   <widget class="QWidget" name="General">
+    <attribute name="title">
+     <string>Tab 1</string>
+    </attribute>
+    <widget class="QGroupBox" name="groupBox">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>20</y>
+       <width>381</width>
+       <height>191</height>
+      </rect>
+     </property>
+     <property name="title">
+      <string>chessboard</string>
+     </property>
+     <widget class="QLabel" name="wl">
+      <property name="geometry">
+       <rect>
+        <x>22</x>
+        <y>73</y>
+        <width>174</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>  棋盘横轴单个格子的长度(mm):</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="numH">
+      <property name="geometry">
+       <rect>
+        <x>22</x>
+        <y>47</y>
+        <width>120</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>  棋盘纵轴角点个数：</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="numW">
+      <property name="geometry">
+       <rect>
+        <x>22</x>
+        <y>21</y>
+        <width>120</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>  棋盘横轴角点个数：</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="hl">
+      <property name="geometry">
+       <rect>
+        <x>22</x>
+        <y>99</y>
+        <width>174</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>  棋盘纵轴单个格子的长度(mm):</string>
+      </property>
+     </widget>
+     <widget class="QSpinBox" name="boardW">
+      <property name="geometry">
+       <rect>
+        <x>202</x>
+        <y>21</y>
+        <width>40</width>
+        <height>20</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QSpinBox" name="boardH">
+      <property name="geometry">
+       <rect>
+        <x>202</x>
+        <y>47</y>
+        <width>40</width>
+        <height>20</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QSpinBox" name="dx">
+      <property name="geometry">
+       <rect>
+        <x>202</x>
+        <y>73</y>
+        <width>40</width>
+        <height>20</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QSpinBox" name="dy">
+      <property name="geometry">
+       <rect>
+        <x>202</x>
+        <y>99</y>
+        <width>40</width>
+        <height>20</height>
+       </rect>
+      </property>
+     </widget>
+    </widget>
+    <widget class="QGroupBox" name="groupBox_2">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>219</y>
+       <width>381</width>
+       <height>141</height>
+      </rect>
+     </property>
+     <property name="title">
+      <string>file</string>
+     </property>
+     <widget class="QLabel" name="dirInfo">
+      <property name="geometry">
+       <rect>
+        <x>31</x>
+        <y>37</y>
+        <width>84</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>图片保存路径：</string>
+      </property>
+     </widget>
+     <widget class="QLineEdit" name="imageDir">
+      <property name="geometry">
+       <rect>
+        <x>121</x>
+        <y>37</y>
+        <width>133</width>
+        <height>20</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QLabel" name="surffixInfo">
+      <property name="geometry">
+       <rect>
+        <x>31</x>
+        <y>64</y>
+        <width>60</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>图片格式：</string>
+      </property>
+     </widget>
+     <widget class="QLineEdit" name="surffix">
+      <property name="geometry">
+       <rect>
+        <x>121</x>
+        <y>64</y>
+        <width>133</width>
+        <height>20</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QLabel" name="outputInfo">
+      <property name="geometry">
+       <rect>
+        <x>31</x>
+        <y>91</y>
+        <width>60</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>输出路径：</string>
+      </property>
+     </widget>
+     <widget class="QLineEdit" name="outputDir">
+      <property name="geometry">
+       <rect>
+        <x>121</x>
+        <y>91</y>
+        <width>133</width>
+        <height>20</height>
+       </rect>
+      </property>
+     </widget>
+    </widget>
+   </widget>
+   <widget class="QWidget" name="tab_2">
+    <attribute name="title">
+     <string>Tab 2</string>
+    </attribute>
+   </widget>
+  </widget>
+  <widget class="QWidget" name="layoutWidget">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>460</y>
+     <width>381</width>
+     <height>25</height>
+    </rect>
+   </property>
+   <layout class="QHBoxLayout" name="horizontalLayout_2">
+    <item>
+     <widget class="QPushButton" name="reset">
+      <property name="text">
+       <string>Reset</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <spacer name="horizontalSpacer">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item>
+     <widget class="QPushButton" name="cancel">
+      <property name="text">
+       <string>Cancel</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="save">
+      <property name="text">
+       <string>Save</string>
+      </property>
+      <property name="default">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
