@@ -18,6 +18,10 @@ public:
 private slots:
     void on_save_clicked();
 
+    void on_cancel_clicked();
+
+    void on_reset_clicked();
+
 private:
     Ui::Dialog *ui;
     void assign();

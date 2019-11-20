@@ -65,6 +65,15 @@ private:
     cv::Mat leftGrayMat;
     cv::Mat middleGrayMat;
     cv::Mat rightGrayMat;
+
+    cv::Mat leftDepth;
+    cv::Mat middleDepth;
+    cv::Mat rightDepth;
+
+    cv::Mat leftCloud;
+    cv::Mat middleCloud;
+    cv::Mat rightCloud;
+
     const int FRAME_WIDTH = 2560;
     const int FRAME_HEIGHT = 720;
     bool detect;
@@ -74,6 +83,7 @@ private:
     int middleNum;
     int rightNum;
 
+    float depthFactor;
     Settings& sets=Settings::instance();
     std::vector<cv::Mat> leftMats;
     std::vector<cv::Mat> leftGrayMats;
@@ -91,8 +101,13 @@ private:
     void saveLeft(QString imageDir,QString drawDir,QString outputDir);
     void saveMiddle(QString imageDir,QString drawDir,QString outputDir);
     void saveRight(QString imageDir,QString drawDir,QString outputDir);
+    bool readZedData(sl::Camera* zed,cv::Mat& out,SaveMode mode,bool wait=false);
     bool readZedImage(sl::Camera* zed,cv::Mat& image,bool wait=false);
-    void detectAndDrawCorners(cv::Mat& image,cv::Mat& grayImage,cv::Mat& drawImage);
+    bool readZedDepth(sl::Camera* zed,cv::Mat& depth,bool wait=false);
+    bool readZedCloud(sl::Camera* zed,cv::Mat& cloud,bool wait=false);
+    bool detectAndDrawCorners(cv::Mat& image,cv::Mat& grayImage,cv::Mat& drawImage);
+    void saveDepth(cv::Mat depth,std::string savePath);
+    void saveCloud(cv::Mat cloud,std::string savePath);
 private slots:
     void openCamera();
     void readCamera();
