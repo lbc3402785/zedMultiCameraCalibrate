@@ -1,0 +1,13 @@
+/release
+/debug
+/build
+/facedata
+/data
+*.pro
+*.pro.*
+Makefile*
+*.jpg
+*.png
+*.obj
+*.pro
+*.zip

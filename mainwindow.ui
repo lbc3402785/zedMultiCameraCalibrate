@@ -222,7 +222,17 @@
     <property name="title">
      <string>工具</string>
     </property>
+    <widget class="QMenu" name="menu">
+     <property name="title">
+      <string>保存</string>
+     </property>
+     <addaction name="action_Image"/>
+     <addaction name="action_Cloud"/>
+     <addaction name="action_Depth"/>
+    </widget>
     <addaction name="clearFile"/>
+    <addaction name="menu"/>
+    <addaction name="mergeCloud"/>
    </widget>
    <addaction name="file"/>
    <addaction name="tool"/>
@@ -253,6 +263,35 @@
   <action name="clearFile">
    <property name="text">
     <string>清空文件</string>
+   </property>
+  </action>
+  <action name="action_Image">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>图片</string>
+   </property>
+  </action>
+  <action name="action_Cloud">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>点云</string>
+   </property>
+  </action>
+  <action name="action_Depth">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>深度图</string>
+   </property>
+  </action>
+  <action name="mergeCloud">
+   <property name="text">
+    <string>合并点云</string>
    </property>
   </action>
  </widget>

@@ -40,3 +40,13 @@ void Dialog::on_save_clicked()
     set.saveSettings();
     accept();
 }
+
+void Dialog::on_cancel_clicked()
+{
+    reject();
+}
+
+void Dialog::on_reset_clicked()
+{
+    Settings::instance().reset();
+}

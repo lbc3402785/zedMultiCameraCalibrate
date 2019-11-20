@@ -7,6 +7,7 @@
 #include "dialog.h"
 
 #include "qfilefunctions.h"
+#include "modelwindow.h"
 using namespace sl;
 /**
  * @brief MainWindow::MainWindow
@@ -25,7 +26,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->leftView->setScene(leftScene);
     ui->middleView->setScene(middleScene);
     ui->rightView->setScene(rightScene);
-
+    ui->action_Cloud->setChecked(false);
+    ui->action_Depth->setChecked(false);
     detect=false;
     capturing=false;
     leftNum=0;
@@ -68,7 +70,8 @@ MainWindow::MainWindow(QWidget *parent) :
     leftStopSignal=false;
     middleStopSignal=false;
     rightStopSignal=false;
-    useSDKParam;
+    useSDKParam=true;
+    saveMode=SaveMode::IMAGE;
 }
 
 MainWindow::~MainWindow()
@@ -104,8 +107,8 @@ void MainWindow::convertSDKParam(CameraParameters param, Calibrator &calibrator)
 {
     CalibrateResult result;
     result.instrisincMatrix=(cv::Mat_<double>()<<param.fx,0,param.cx,
-            0,param.fy,param.cy,
-            0,0,1);
+                             0,param.fy,param.cy,
+                             0,0,1);
     result.distortionCoeff=cv::Mat::zeros(5,1,CV_64F);
     calibrator.setResult(result);
 }
@@ -216,7 +219,7 @@ void MainWindow::openAll(int leftId,int middleId,int rightId)
     openRightZed(rightId);
 }
 
-void MainWindow::saveLeft(QString imageDir,QString drawDir)
+void MainWindow::saveLeft(QString imageDir,QString drawDir,QString outputDir)
 {
     Settings &sets=Settings::instance();
     QString surffix=sets.getImageSurffix();
@@ -237,7 +240,7 @@ void MainWindow::saveLeft(QString imageDir,QString drawDir)
     ui->leftLcdNumber->display(leftNum);
 }
 
-void MainWindow::saveMiddle(QString imageDir, QString drawDir)
+void MainWindow::saveMiddle(QString imageDir, QString drawDir,QString outputDir)
 {
     Settings &sets=Settings::instance();
     QString surffix=sets.getImageSurffix();
@@ -258,7 +261,7 @@ void MainWindow::saveMiddle(QString imageDir, QString drawDir)
     ui->middleLcdNumber->display(middleNum);
 }
 
-void MainWindow::saveRight(QString imageDir,QString drawDir)
+void MainWindow::saveRight(QString imageDir,QString drawDir,QString outputDir)
 {
     Settings &sets=Settings::instance();
     QString surffix=sets.getImageSurffix();
@@ -278,6 +281,54 @@ void MainWindow::saveRight(QString imageDir,QString drawDir)
     rightMats.push_back(right);
     rightGrayMats.push_back(rightGrayMat);
     ui->rightLcdNumber->display(rightNum);
+}
+
+bool MainWindow::readZedImage(Camera *zed, cv::Mat &image,bool wait)
+{
+    sl::Mat aux;
+    sl::RuntimeParameters rt_params;
+    if(wait){
+        while(true){
+            sl::ERROR_CODE res = zed->grab(rt_params);
+            if (res == sl::SUCCESS) {
+                zed->retrieveImage(aux, sl::VIEW_LEFT, sl::MEM_CPU);
+                cv::Mat(aux.getHeight(), aux.getWidth(), CV_8UC4, aux.getPtr<sl::uchar1>(sl::MEM_CPU)).copyTo(image);
+                break;
+            }else{
+                sl::sleep_ms(1);
+            }
+        }
+        return true;
+    }else{
+
+        sl::ERROR_CODE res = zed->grab(rt_params);
+        if (res == sl::SUCCESS) {
+            zed->retrieveImage(aux, sl::VIEW_LEFT, sl::MEM_CPU);
+            cv::Mat(aux.getHeight(), aux.getWidth(), CV_8UC4, aux.getPtr<sl::uchar1>(sl::MEM_CPU)).copyTo(image);
+            return true;
+        }else{
+            return false;
+        }
+    }
+}
+
+bool MainWindow::detectAndDrawCorners(cv::Mat &image, cv::Mat &grayImage, cv::Mat &drawImage)
+{
+    cv::cvtColor(image,grayImage,CV_BGR2GRAY);
+    std::vector<cv::Point2f> leftPointBuf;
+    cv::Size checkerBoardSize=cv::Size(sets.chessBoardConfig.boardW,sets.chessBoardConfig.boardH);
+    //extract image corner
+    int leftFound=cv::findChessboardCorners(left,checkerBoardSize,leftPointBuf, CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FILTER_QUADS);//the  input arguments  is important
+    if(leftFound){
+        //qDebug()<<"check left corners successful!";
+        drawImage=image.clone();
+        cv::cornerSubPix( grayImage, leftPointBuf, cv::Size(11,11),
+                          cv::Size(-1,-1), cv::TermCriteria( CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 30, 0.1 ));
+        cv::drawChessboardCorners(drawImage,checkerBoardSize,leftPointBuf,leftFound);
+        return true;
+    }else{
+        return false;
+    }
 }
 
 void MainWindow::openCamera()
@@ -316,32 +367,12 @@ void MainWindow::readLeftCamera()
     if(!leftStopSignal){
         width=leftZed->getResolution().width;
         height=leftZed->getResolution().height;
-        sl::ERROR_CODE res = leftZed->grab(rt_params);
-        if (res == sl::SUCCESS) {
-            leftZed->retrieveImage(aux, sl::VIEW_LEFT, sl::MEM_CPU);
-            //cv::Mat(aux.getHeight(), aux.getWidth(), CV_8UC4, aux.getPtr<sl::uchar1>(sl::MEM_CPU)).copyTo(leftSbSResult(cv::Rect(0, 0, width, height)));
-            //            leftZed->retrieveImage(aux, sl::VIEW_DEPTH, sl::MEM_CPU);
-            //            cv::Mat(aux.getHeight(), aux.getWidth(), CV_8UC4, aux.getPtr<sl::uchar1>(sl::MEM_CPU)).copyTo(leftSbSResult(cv::Rect(width, 0, width, height)));
-            //left=leftSbSResult(cv::Rect(0, 0, width, height));
-            cv::Mat(aux.getHeight(), aux.getWidth(), CV_8UC4, aux.getPtr<sl::uchar1>(sl::MEM_CPU)).copyTo(left);
+        if (readZedImage(leftZed,left)) {
             cv::Mat leftTmp;
             cv::cvtColor(left,leftTmp,CV_BGR2RGB);
             if(detect){
-                cv::cvtColor(left,leftGrayMat,CV_BGR2GRAY);
-                std::vector<cv::Point2f> leftPointBuf;
-                cv::Size checkerBoardSize=cv::Size(sets.chessBoardConfig.boardW,sets.chessBoardConfig.boardH);
-                //extract image corner
-                int leftFound=cv::findChessboardCorners(left,checkerBoardSize,leftPointBuf, CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FILTER_QUADS);//the  input arguments  is important
-                if(leftFound){
-                    //qDebug()<<"check left corners successful!";
-                    leftDrawMat=left.clone();
-                    cv::cornerSubPix( leftGrayMat, leftPointBuf, cv::Size(11,11),
-                                      cv::Size(-1,-1), cv::TermCriteria( CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 30, 0.1 ));
-                    cv::drawChessboardCorners(leftDrawMat,checkerBoardSize,leftPointBuf,leftFound);
+                if(detectAndDrawCorners(left,leftGrayMat,leftDrawMat)){
                     cv::cvtColor(leftDrawMat,leftTmp,CV_BGR2RGB);
-
-                }else{
-                    //qDebug()<<"check left corners fail!";
                 }
             }
             QImage leftImage=QImage((const uchar*)(leftTmp.data),leftTmp.cols,leftTmp.rows,QImage::Format_RGB888);
@@ -349,7 +380,6 @@ void MainWindow::readLeftCamera()
             leftScene->clear();
             leftScene->addPixmap(leftPix);
         }
-        sl::sleep_ms(1);
     }
 }
 
@@ -362,32 +392,12 @@ void MainWindow::readMiddleCamera()
     if(!middleStopSignal){
         width=middleZed->getResolution().width;
         height=middleZed->getResolution().height;
-        sl::ERROR_CODE res = middleZed->grab(rt_params);
-        if (res == sl::SUCCESS) {
-            middleZed->retrieveImage(aux, sl::VIEW_LEFT, sl::MEM_CPU);
-            //cv::Mat(aux.getHeight(), aux.getWidth(), CV_8UC4, aux.getPtr<sl::uchar1>(sl::MEM_CPU)).copyTo(middleSbSResult(cv::Rect(0, 0, width, height)));
-            //            leftZed->retrieveImage(aux, sl::VIEW_DEPTH, sl::MEM_CPU);
-            //            cv::Mat(aux.getHeight(), aux.getWidth(), CV_8UC4, aux.getPtr<sl::uchar1>(sl::MEM_CPU)).copyTo(leftSbSResult(cv::Rect(width, 0, width, height)));
-            //middle=middleSbSResult(cv::Rect(0, 0, width, height));
-            cv::Mat(aux.getHeight(), aux.getWidth(), CV_8UC4, aux.getPtr<sl::uchar1>(sl::MEM_CPU)).copyTo(middle);
+        if (readZedImage(middleZed,middle)) {
             cv::Mat middleTmp;
             cv::cvtColor(middle,middleTmp,CV_BGR2RGB);
             if(detect){
-                cv::cvtColor(middle,middleGrayMat,CV_BGR2GRAY);
-                std::vector<cv::Point2f> middlePointBuf;
-                cv::Size checkerBoardSize=cv::Size(sets.chessBoardConfig.boardW,sets.chessBoardConfig.boardH);
-                //extract image corner
-                int middleFound=cv::findChessboardCorners(middle,checkerBoardSize,middlePointBuf, CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FILTER_QUADS);//the  input arguments  is important
-                if(middleFound){
-                    //qDebug()<<"check middle corners successful!";
-                    middleDrawMat=middle.clone();
-                    cv::cornerSubPix( middleGrayMat, middlePointBuf, cv::Size(11,11),
-                                      cv::Size(-1,-1), cv::TermCriteria( CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 30, 0.1 ));
-                    cv::drawChessboardCorners(middleDrawMat,checkerBoardSize,middlePointBuf,middleFound);
+                if(detectAndDrawCorners(middle,middleGrayMat,middleDrawMat)){
                     cv::cvtColor(middleDrawMat,middleTmp,CV_BGR2RGB);
-
-                }else{
-                    //qDebug()<<"check middle corners fail!";
                 }
             }
             QImage middleImage=QImage((const uchar*)(middleTmp.data),middleTmp.cols,middleTmp.rows,QImage::Format_RGB888);
@@ -395,7 +405,6 @@ void MainWindow::readMiddleCamera()
             middleScene->clear();
             middleScene->addPixmap(middlePix);
         }
-        sl::sleep_ms(1);
     }
 }
 
@@ -408,32 +417,12 @@ void MainWindow::readRightCamera()
     if(!rightStopSignal){
         width=rightZed->getResolution().width;
         height=rightZed->getResolution().height;
-        sl::ERROR_CODE res =rightZed->grab(rt_params);
-        if (res == sl::SUCCESS) {
-            //rightZed->retrieveImage(aux, sl::VIEW_LEFT, sl::MEM_CPU);
-            //cv::Mat(aux.getHeight(), aux.getWidth(), CV_8UC4, aux.getPtr<sl::uchar1>(sl::MEM_CPU)).copyTo(rightSbSResult(cv::Rect(0, 0, width, height)));
-            //            leftZed->retrieveImage(aux, sl::VIEW_DEPTH, sl::MEM_CPU);
-            //            cv::Mat(aux.getHeight(), aux.getWidth(), CV_8UC4, aux.getPtr<sl::uchar1>(sl::MEM_CPU)).copyTo(leftSbSResult(cv::Rect(width, 0, width, height)));
-            //right=rightSbSResult(cv::Rect(0, 0, width, height));
-            cv::Mat(aux.getHeight(), aux.getWidth(), CV_8UC4, aux.getPtr<sl::uchar1>(sl::MEM_CPU)).copyTo(right);
+        if (readZedImage(rightZed,right)) {
             cv::Mat rightTmp;
             cv::cvtColor(right,rightTmp,CV_BGR2RGB);
             if(detect){
-                cv::cvtColor(right,rightGrayMat,CV_BGR2GRAY);
-                std::vector<cv::Point2f> rightPointBuf;
-                cv::Size checkerBoardSize=cv::Size(sets.chessBoardConfig.boardW,sets.chessBoardConfig.boardH);
-                //extract image corner
-                int rightFound=cv::findChessboardCorners(right,checkerBoardSize,rightPointBuf, CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FILTER_QUADS);//the  input arguments  is important
-                if(rightFound){
-                    qDebug()<<"check right corners successful!";
-                    rightDrawMat=right.clone();
-                    cv::cornerSubPix( rightGrayMat, rightPointBuf, cv::Size(11,11),
-                                      cv::Size(-1,-1), cv::TermCriteria( CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 30, 0.1 ));
-                    cv::drawChessboardCorners(rightDrawMat,checkerBoardSize,rightPointBuf,rightFound);
+                if(detectAndDrawCorners(right,rightGrayMat,rightDrawMat)){
                     cv::cvtColor(rightDrawMat,rightTmp,CV_BGR2RGB);
-
-                }else{
-                    qDebug()<<"check right corners fail!";
                 }
             }
             QImage rightImage=QImage((const uchar*)(rightTmp.data),rightTmp.cols,rightTmp.rows,QImage::Format_RGB888);
@@ -441,7 +430,6 @@ void MainWindow::readRightCamera()
             rightScene->clear();
             rightScene->addPixmap(rightPix);
         }
-        sl::sleep_ms(1);
     }
 
 }
@@ -475,13 +463,14 @@ void MainWindow::on_save_clicked()
     capturing=true;
     QString imageDir=sets.getImageDir();
     QString drawDir=sets.getDrawDir();
+    QString outputDir=sets.getOutputDir();
     QDir tmp;
     tmp.mkpath(imageDir);
     tmp.mkpath(drawDir);
 
-    saveLeft(imageDir,drawDir);
-    saveMiddle(imageDir,drawDir);
-    saveRight(imageDir,drawDir);
+    saveLeft(imageDir,drawDir,outputDir);
+    saveMiddle(imageDir,drawDir,outputDir);
+    saveRight(imageDir,drawDir,outputDir);
 
     capturing=false;
 }
@@ -681,4 +670,28 @@ void MainWindow::on_left2middle_clicked()
 
     stereoCalibrator.calibrateStereo();
     ui->statusBar->showMessage(tr("calibrate two done"), 2000);
+}
+
+void MainWindow::on_action_Image_triggered()
+{
+    ui->action_Cloud->setChecked(false);
+    ui->action_Depth->setChecked(false);
+}
+
+void MainWindow::on_action_Cloud_triggered()
+{
+    ui->action_Image->setChecked(false);
+    ui->action_Depth->setChecked(false);
+}
+
+void MainWindow::on_action_Depth_triggered()
+{
+    ui->action_Cloud->setChecked(false);
+    ui->action_Image->setChecked(false);
+}
+
+void MainWindow::on_mergeCloud_triggered()
+{
+    ModelWindow* modelWindow=new ModelWindow(this);
+    modelWindow->show();
 }

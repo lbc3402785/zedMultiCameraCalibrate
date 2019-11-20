@@ -21,7 +21,7 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
-
+    enum SaveMode{IMAGE,CLOUD,DEPTH};
 private:
     void zedSetting(sl::Camera* zed);
     bool checkCameraId();
@@ -40,7 +40,7 @@ private:
     bool rightStopSignal;
     sl::InitParameters initParams;
     sl::RuntimeParameters runtime_parameters;
-
+    SaveMode saveMode;
     bool useSDKParam;
 //    cv::Mat leftSbSResult;
 //    cv::Mat middleSbSResult;
@@ -73,6 +73,7 @@ private:
     int leftNum;
     int middleNum;
     int rightNum;
+
     Settings& sets=Settings::instance();
     std::vector<cv::Mat> leftMats;
     std::vector<cv::Mat> leftGrayMats;
@@ -87,9 +88,11 @@ private:
 //    void openRight(int rightId);
     void openRightZed(int rightId);
     void openAll(int leftId,int middleId,int rightId);
-    void saveLeft(QString imageDir,QString drawDir);
-    void saveMiddle(QString imageDir,QString drawDir);
-    void saveRight(QString imageDir,QString drawDir);
+    void saveLeft(QString imageDir,QString drawDir,QString outputDir);
+    void saveMiddle(QString imageDir,QString drawDir,QString outputDir);
+    void saveRight(QString imageDir,QString drawDir,QString outputDir);
+    bool readZedImage(sl::Camera* zed,cv::Mat& image,bool wait=false);
+    void detectAndDrawCorners(cv::Mat& image,cv::Mat& grayImage,cv::Mat& drawImage);
 private slots:
     void openCamera();
     void readCamera();
@@ -111,6 +114,10 @@ private slots:
     void on_closeMiddle_clicked();
     void on_clearFile_triggered();
     void on_left2middle_clicked();
+    void on_action_Image_triggered();
+    void on_action_Cloud_triggered();
+    void on_action_Depth_triggered();
+    void on_mergeCloud_triggered();
 };
 
 #endif // MAINWINDOW_H
