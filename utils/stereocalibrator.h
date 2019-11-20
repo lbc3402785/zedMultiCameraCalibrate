@@ -17,7 +17,11 @@ public:
     std::string getRelativeOutputFileName() const;
     void setRelativeOutputFileName(const std::string &value);
 
+    CalibrateResult getRelative() const;
+    void setRelative(const CalibrateResult &value);
+
 private:
+    CalibrateResult relative;
     int calibrationFlags;
     Calibrator srcCalibrator;
     Calibrator dstCalibrator;

@@ -142,7 +142,6 @@ void StereoCalibrator::calRelative()
             cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 100, 1e-5));
        srcResult.saveCameraParams(srcCalibrator.getOutputFileName(),srcCalibrator.getCalibrationFlags());
        dstResult.saveCameraParams(dstCalibrator.getOutputFileName(),dstCalibrator.getCalibrationFlags());
-       CalibrateResult relative;
        relative.R=R;
        relative.T=T;
        relative.rms=rms;
@@ -158,4 +157,14 @@ std::string StereoCalibrator::getRelativeOutputFileName() const
 void StereoCalibrator::setRelativeOutputFileName(const std::string &value)
 {
     relativeOutputFileName = value;
+}
+
+CalibrateResult StereoCalibrator::getRelative() const
+{
+    return relative;
+}
+
+void StereoCalibrator::setRelative(const CalibrateResult &value)
+{
+    relative = value;
 }

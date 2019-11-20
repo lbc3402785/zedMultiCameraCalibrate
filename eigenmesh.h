@@ -17,7 +17,7 @@ public:
 
     Eigen::Matrix4Xf getColors() const;
     void setColors(const Eigen::Matrix4Xf &value);
-
+    float computeScale();
 private:
     Eigen::Matrix3Xf points;
     Eigen::Matrix3Xf normals;

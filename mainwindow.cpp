@@ -72,6 +72,8 @@ MainWindow::MainWindow(QWidget *parent) :
     rightStopSignal=false;
     useSDKParam=true;
     saveMode=SaveMode::IMAGE;
+    left2middle=nullptr;
+    right2middle=nullptr;
 }
 
 MainWindow::~MainWindow()
@@ -388,6 +390,7 @@ bool MainWindow::readZedData(Camera *zed, cv::Mat &out,SaveMode mode, bool wait)
                 case SaveMode::IMAGE:
                     zed->retrieveImage(aux, sl::VIEW_LEFT, sl::MEM_CPU);
                     out=cv::Mat(aux.getHeight(), aux.getWidth(), CV_8UC4, aux.getPtr<sl::uchar1>(sl::MEM_CPU)).clone();
+                    cv::cvtColor(out,out,cv::COLOR_BGRA2BGR);
                     break;
                 case SaveMode::DEPTH:
                     zed->retrieveMeasure(aux, sl::MEASURE_DEPTH, sl::MEM_CPU);
@@ -491,6 +494,51 @@ void MainWindow::saveCloud(cv::Mat cloud, std::string savePath)
         }
     }
     out.close();
+}
+
+void MainWindow::applyRigidTransform(cv::Mat &cloud, CalibrateResult relative)
+{
+    int i,j;
+    cv::Mat R=relative.R;
+    cv::Mat T=relative.T;
+    cv::Mat tmp=cloud.clone();
+    for (i = 0; i < cloud.rows; i++) {
+        for (j = 0; j < cloud.cols; j++) {
+            cv::Vec4f& f4=cloud.at<cv::Vec4f>(i,j);
+            cv::Vec4f& f4dst=tmp.at<cv::Vec4f>(i,j);
+            f4dst[0]=R.at<double>(0,0)*f4[0]+R.at<double>(0,1)*f4[1]+R.at<double>(0,2)*f4[2]+T.at<double>(0,0);
+            f4dst[1]=R.at<double>(1,0)*f4[0]+R.at<double>(1,1)*f4[1]+R.at<double>(1,2)*f4[2]+T.at<double>(1,0);
+            f4dst[2]=R.at<double>(2,0)*f4[0]+R.at<double>(2,1)*f4[1]+R.at<double>(2,2)*f4[2]+T.at<double>(2,0);
+        }
+    }
+    tmp.copyTo(cloud);
+}
+
+void MainWindow::convertEigenMesh(const cv::Mat& cloud, EigenMesh &mesh)
+{
+    Eigen::Matrix3Xf points;
+    Eigen::Matrix4Xf colors;
+    std::vector<Eigen::Vector3f> pv;
+    std::vector<Eigen::Vector4f> cv;
+    int i,j;
+    for (i = 0; i < cloud.rows; i++) {
+        for (j = 0; j < cloud.cols; j++) {
+            cv::Vec4f f4=cloud.at<cv::Vec4f>(i,j);
+            if (std::isnan(f4[0]) || std::isnan(f4[1]) || std::isnan(f4[2]))continue;
+            if (std::isinf(f4[0]) || std::isinf(f4[1]) || std::isinf(f4[2]))continue;
+            pv.push_back(Eigen::Vector3f(f4[0],f4[1],f4[2]));
+            unsigned char* temp= (unsigned char*)&f4[3];
+            cv.push_back(Eigen::Vector4f((int)temp[0],(int)temp[1],(int)temp[2],255));
+        }
+    }
+    points.resize(3,pv.size());
+    colors.resize(4,cv.size());
+    for(i=0;i<pv.size();i++){
+        points.col(i)=pv[i];
+        colors.col(i)=cv[i];
+    }
+    mesh.setPoints(points);
+    mesh.setColors(colors);
 }
 
 void MainWindow::openCamera()
@@ -774,7 +822,6 @@ void MainWindow::on_left2middle_clicked()
         {
             QFileInfo leftFileInfo = leftFileList[i];
             QString leftSuffix = leftFileInfo.suffix();
-            std::cout<<"leftSuffix:"<<leftSuffix.toStdString()<<std::endl;
             if(QString::compare(leftSuffix, imageSuffix, Qt::CaseInsensitive) == 0) {
                 QString filePath = leftFileInfo.absoluteFilePath();
                 QString fileName = leftFileInfo.baseName();
@@ -817,8 +864,9 @@ void MainWindow::on_left2middle_clicked()
     stereoCalibrator.setSrcCalibrator(srcCalibrator);
     stereoCalibrator.setDstCalibrator(dstCalibrator);
     stereoCalibrator.setRelativeOutputFileName(relativeOutputFileName.toStdString());
-
     stereoCalibrator.calibrateStereo();
+    left2middle=new CalibrateResult();
+    *left2middle=stereoCalibrator.getRelative();
     ui->statusBar->showMessage(tr("calibrate two done"), 2000);
 }
 
@@ -845,6 +893,125 @@ void MainWindow::on_action_Depth_triggered()
 
 void MainWindow::on_mergeCloud_triggered()
 {
-    ModelWindow* modelWindow=new ModelWindow(this);
-    modelWindow->show();
+    if(!middleCloud.empty()){
+        cv::Mat result=middleCloud.clone();
+        if(!leftCloud.empty()&&left2middle){
+            applyRigidTransform(leftCloud,*left2middle);
+            cv::hconcat(result,leftCloud,result);
+            std::cout<<"merge left and middle done!"<<std::endl<<std::flush;
+            std::cout<<"result.rows:"<<result.rows<<",result.cols:"<<result.cols<<std::endl<<std::flush;
+        }
+        if(!rightCloud.empty()&&right2middle){
+            applyRigidTransform(rightCloud,*right2middle);
+            cv::hconcat(result,rightCloud,result);
+            std::cout<<"merge right and middle done!"<<std::endl<<std::flush;
+            std::cout<<"result.rows:"<<result.rows<<",result.cols:"<<result.cols<<std::endl<<std::flush;
+        }
+        EigenMesh src;
+        convertEigenMesh(result,src);
+        ModelWindow* modelWindow=new ModelWindow(this);
+        modelWindow->inputSrcMesh(src);
+        modelWindow->show();
+    }
+
+}
+
+void MainWindow::on_right2middle_clicked()
+{
+    ui->statusBar->showMessage(tr("calibrate two..."), 2000);
+    Calibrator srcCalibrator,dstCalibrator;
+    StereoCalibrator stereoCalibrator;
+    QString outputDir=sets.getOutputDir();
+    QDir tmp;
+    tmp.mkpath(outputDir);
+    QString rightOutputFileName=outputDir+QDir::separator()+"right.yml";
+    QString middleOutputFileName=outputDir+QDir::separator()+"middle.yml";
+    QString relativeOutputFileName=outputDir+QDir::separator()+"right2middle.yml";
+    if(rightGrayMats.size()>0&&middleGrayMats.size()>0){
+        srcCalibrator.setOutputFileName(rightOutputFileName.toStdString());
+        srcCalibrator.setImages(rightMats);
+        srcCalibrator.setGrayImages(rightGrayMats);
+        srcCalibrator.setChessBoardConfig(sets.chessBoardConfig);
+
+        dstCalibrator.setOutputFileName(middleOutputFileName.toStdString());
+        dstCalibrator.setImages(middleMats);
+        dstCalibrator.setGrayImages(middleGrayMats);
+        dstCalibrator.setChessBoardConfig(sets.chessBoardConfig);
+
+
+    }else{
+        QString imageDir=sets.getImageDir();
+        QString imageSuffix=sets.getImageSurffix();
+        QDir dir(imageDir);
+        if(!dir.exists())return;
+        QString rightImageDir=imageDir+QDir::separator()+"right";
+        QDir rightDir(rightImageDir);
+        if(!rightDir.exists())return;
+        QString middleImageDir=imageDir+QDir::separator()+"middle";
+        QDir middleDir(middleImageDir);
+        if(!middleDir.exists())return;
+
+        rightDir.setFilter(QDir::Files);
+        QFileInfoList rightFileList = rightDir.entryInfoList();
+        int rightFileCount = rightFileList.count();
+
+        middleDir.setFilter(QDir::Files);
+        QFileInfoList middleFileList = middleDir.entryInfoList();
+        int middleFileCount = middleFileList.count();
+        if(middleFileCount==0||middleFileCount==0||rightFileCount!=middleFileCount)return;
+        std::vector<cv::Mat> rightImgs;
+        std::vector<cv::Mat> rightGrayImgs;
+
+        std::vector<cv::Mat> middleImgs;
+        std::vector<cv::Mat> middleGrayImgs;
+        for(int i=0;i<rightFileCount;i++)
+        {
+            QFileInfo rightFileInfo = rightFileList[i];
+            QString rightSuffix = rightFileInfo.suffix();
+            if(QString::compare(rightSuffix, imageSuffix, Qt::CaseInsensitive) == 0) {
+                QString filePath = rightFileInfo.absoluteFilePath();
+                QString fileName = rightFileInfo.baseName();
+                cv::Mat img=cv::imread(filePath.toStdString());
+                rightImgs.push_back(img);
+                cv::Mat gray;
+                cvtColor(img,gray,CV_BGR2GRAY);
+                rightGrayImgs.push_back(gray);
+            }
+
+            QFileInfo middleFileInfo = middleFileList[i];
+            QString middleSuffix = middleFileInfo.suffix();
+            if(QString::compare(middleSuffix, imageSuffix, Qt::CaseInsensitive) == 0) {
+                QString filePath = middleFileInfo.absoluteFilePath();
+                QString fileName = middleFileInfo.baseName();
+                cv::Mat img=cv::imread(filePath.toStdString());
+                middleImgs.push_back(img);
+                cv::Mat gray;
+                cvtColor(img,gray,CV_BGR2GRAY);
+                middleGrayImgs.push_back(gray);
+            }
+        }
+        if(rightImgs.size()!=middleImgs.size())return;
+        srcCalibrator.setOutputFileName(rightOutputFileName.toStdString());
+        srcCalibrator.setImages(rightImgs);
+        srcCalibrator.setGrayImages(rightGrayImgs);
+        srcCalibrator.setChessBoardConfig(sets.chessBoardConfig);
+
+        dstCalibrator.setOutputFileName(middleOutputFileName.toStdString());
+        dstCalibrator.setImages(middleImgs);
+        dstCalibrator.setGrayImages(middleGrayImgs);
+        dstCalibrator.setChessBoardConfig(sets.chessBoardConfig);
+    }
+    if(useSDKParam){
+        convertSDKParam(rightZed->getCameraInformation().calibration_parameters.right_cam,srcCalibrator);
+        srcCalibrator.setUseSDKParam(true);
+        convertSDKParam(middleZed->getCameraInformation().calibration_parameters.right_cam,dstCalibrator);
+        dstCalibrator.setUseSDKParam(true);
+    }
+    stereoCalibrator.setSrcCalibrator(srcCalibrator);
+    stereoCalibrator.setDstCalibrator(dstCalibrator);
+    stereoCalibrator.setRelativeOutputFileName(relativeOutputFileName.toStdString());
+    stereoCalibrator.calibrateStereo();
+    right2middle=new CalibrateResult();
+    *right2middle=stereoCalibrator.getRelative();
+    ui->statusBar->showMessage(tr("calibrate two done"), 2000);
 }

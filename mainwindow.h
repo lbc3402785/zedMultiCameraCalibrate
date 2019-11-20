@@ -10,6 +10,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <sl/Camera.hpp>
 #include "utils/stereocalibrator.h"
+#include "eigenmesh.h"
 namespace Ui {
 class MainWindow;
 }
@@ -33,6 +34,9 @@ private:
     sl::Camera*leftZed;
     sl::Camera*middleZed;
     sl::Camera*rightZed;
+
+    CalibrateResult* left2middle;
+    CalibrateResult* right2middle;
 
 
     bool leftStopSignal;
@@ -108,6 +112,8 @@ private:
     bool detectAndDrawCorners(cv::Mat& image,cv::Mat& grayImage,cv::Mat& drawImage);
     void saveDepth(cv::Mat depth,std::string savePath);
     void saveCloud(cv::Mat cloud,std::string savePath);
+    void applyRigidTransform(cv::Mat& cloud,CalibrateResult relative);
+    void convertEigenMesh(const cv::Mat& cloud,EigenMesh& mesh);
 private slots:
     void openCamera();
     void readCamera();
@@ -133,6 +139,7 @@ private slots:
     void on_action_Cloud_triggered();
     void on_action_Depth_triggered();
     void on_mergeCloud_triggered();
+    void on_right2middle_clicked();
 };
 
 #endif // MAINWINDOW_H

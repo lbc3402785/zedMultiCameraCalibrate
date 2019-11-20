@@ -81,7 +81,7 @@ void Viewer::drawMesh(EigenMesh &mesh,Eigen::Vector3f defaultColor,showMode mode
         if(need_draw_contour_line){
             glEnable(GL_POLYGON_OFFSET_LINE);
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-            glColor3f(0,0,1);
+            glColor3fv(defaultColor.data());
             glLineWidth(1.0f);
             glPolygonOffset(1.0, 1.0);
            // std::cout<<33<<std::endl<<std::flush;
@@ -109,6 +109,7 @@ void Viewer::drawMesh(EigenMesh &mesh,Eigen::Vector3f defaultColor,showMode mode
         }
     }
     else{
+
         glDisable(GL_LIGHTING);
         glPointSize(2);
         glBegin(GL_POINTS);

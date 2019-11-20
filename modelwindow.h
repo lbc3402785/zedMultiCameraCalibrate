@@ -14,7 +14,7 @@ class ModelWindow : public QMainWindow
 public:
     explicit ModelWindow(QWidget *parent = nullptr);
     ~ModelWindow();
-
+    void inputSrcMesh(EigenMesh src);
 private:
     Ui::ModelWindow *ui;
     Viewer* modelViewer;
