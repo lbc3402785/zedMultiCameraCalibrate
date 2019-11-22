@@ -62,6 +62,54 @@ cv::Mat eulerAnglesToRotationMatrix(cv::Vec3f &theta)
     return R;
 
 }
+bool isRotationMatrix(cv::Mat &R)
+{
+    cv::Mat Rt;
+    transpose(R, Rt);
+    cv::Mat shouldBeIdentity = Rt * R;
+    cv::Mat I = cv::Mat::eye(3,3, shouldBeIdentity.type());
+
+    return  norm(I, shouldBeIdentity) < 1e-6;
+
+}
+cv::Mat rot2euler(const cv::Mat & rotationMatrix)
+{
+  cv::Mat euler(3,1,CV_64F);
+
+  double m00 = rotationMatrix.at<double>(0,0);
+  double m02 = rotationMatrix.at<double>(0,2);
+  double m10 = rotationMatrix.at<double>(1,0);
+  double m11 = rotationMatrix.at<double>(1,1);
+  double m12 = rotationMatrix.at<double>(1,2);
+  double m20 = rotationMatrix.at<double>(2,0);
+  double m22 = rotationMatrix.at<double>(2,2);
+
+  double x, y, z;
+
+  // Assuming the angles are in radians.
+  if (m10 > 0.998) { // singularity at north pole
+    x = 0;
+    y = CV_PI/2;
+    z = atan2(m02,m22);
+  }
+  else if (m10 < -0.998) { // singularity at south pole
+    x = 0;
+    y = -CV_PI/2;
+    z = atan2(m02,m22);
+  }
+  else
+  {
+    x = atan2(-m12,m11);
+    y = asin(m10);
+    z = atan2(-m20,m00);
+  }
+
+  euler.at<double>(0) = x;
+  euler.at<double>(1) = y;
+  euler.at<double>(2) = z;
+
+  return euler;
+}
 void calsrc2dstRt(cv::Mat srcRvec,cv::Mat srcTvec,cv::Mat dstRvec,cv::Mat dstTvec,cv::Mat& src2dstRvec,cv::Mat&src2dstTvec)
 {
     srcRvec.convertTo(srcRvec,CV_64F);
@@ -72,12 +120,16 @@ void calsrc2dstRt(cv::Mat srcRvec,cv::Mat srcTvec,cv::Mat dstRvec,cv::Mat dstTve
     cv::Mat InvMatrixSrc=cv::Mat::zeros(3,3,CV_64F);
     cv::Mat matrixDst=cv::Mat::zeros(3,3,CV_64F);
     cv::Mat R=cv::Mat::zeros(3,3,CV_64F);
+    src2dstRvec=cv::Mat::zeros(3,1,CV_64F);
+    src2dstTvec=cv::Mat::zeros(3,1,CV_64F);
     cv::Rodrigues(srcRvec,matrixSrc);
     cv::Rodrigues(dstRvec,matrixDst);
     InvMatrixSrc=matrixSrc.inv();
     cv::gemm(matrixDst,InvMatrixSrc,1,NULL,0,R,0);
     cv::gemm(R,srcTvec,-1,dstTvec,1,src2dstTvec,0);
     cv::Rodrigues(R,src2dstRvec,cv::noArray());
+    std::cout<<"R:"<<R<<std::endl<<std::flush;
+    std::cout<<"src2dstTvec:"<<src2dstTvec<<std::endl<<std::flush;
 }
 void StereoCalibrator::calRelative()
 {
@@ -88,38 +140,40 @@ void StereoCalibrator::calRelative()
     size_t lt=srcCalibrator.getImages().size();
     size_t lr=dstCalibrator.getImages().size();
     size_t num=std::min(lt,lr);
-//    std::vector<bool> srcUsed=srcCalibrator.getUsed();
-//    std::vector<bool> dstUsed=dstCalibrator.getUsed();
-//    CalibrateResult srcResult=srcCalibrator.getResult();
-//    CalibrateResult dstResult=dstCalibrator.getResult();
-//    std::vector<cv::Mat> src2dstRvecs;
-//    std::vector<cv::Mat> src2dstTvecs;
-//    for(int i=0;i<num;i++)
-//    {
-//        if(srcUsed[i]&&dstUsed[i]){
-//            cv::Mat src2dstRvec;
-//            cv::Mat src2dstTvec;
-//            calsrc2dstRt(srcResult.rvecs[i],srcResult.tvecs[i],dstResult.rvecs[i],dstResult.tvecs[i],src2dstRvec,src2dstTvec);
-//            src2dstRvecs.push_back(src2dstRvec);
-//            src2dstTvecs.push_back(src2dstTvec);
-//        }
-//    }
-//    num=src2dstRvecs.size();
     std::vector<bool> srcUsed=srcCalibrator.getUsed();
     std::vector<bool> dstUsed=dstCalibrator.getUsed();
-    const std::vector<std::vector<cv::Point3f> >& srcObjects=srcCalibrator.getObjectPoints();
-    const std::vector<std::vector<cv::Point2f>>& srcImagePoints=srcCalibrator.getImagePoints();
-    const std::vector<std::vector<cv::Point2f>>& dstImagePoints=dstCalibrator.getImagePoints();
+    CalibrateResult srcResult=srcCalibrator.getResult();
+    CalibrateResult dstResult=dstCalibrator.getResult();
+
+
+    if(!useSDKParam){
+        std::vector<cv::Mat> src2dstRvecs;
+        std::vector<cv::Mat> src2dstTvecs;
+        for(int i=0;i<num;i++)
+        {
+            if(srcUsed[i]&&dstUsed[i]){
+                cv::Mat src2dstRvec;
+                cv::Mat src2dstTvec;
+                calsrc2dstRt(srcResult.rvecs[i],srcResult.tvecs[i],dstResult.rvecs[i],dstResult.tvecs[i],src2dstRvec,src2dstTvec);
+                src2dstRvecs.push_back(src2dstRvec);
+                src2dstTvecs.push_back(src2dstTvec);
+            }
+        }
+    }
+
+//    num=src2dstRvecs.size();
+    const std::vector<std::vector<cv::Point3f> >& srcfullObjects=srcCalibrator.getFullObjectPoints();
+    const std::vector<std::vector<cv::Point2f>>& srcfullImagePoints=srcCalibrator.getFullImagePoints();
+    const std::vector<std::vector<cv::Point2f>>& dstfullImagePoints=dstCalibrator.getFullImagePoints();
     for(int i=0;i<num;i++)
     {
         if(srcUsed[i]&&dstUsed[i]){
-            objectPoint.push_back((srcObjects[i]));
-            imagePoint1.push_back(srcImagePoints[i]);
-            imagePoint2.push_back(dstImagePoints[i]);
+            objectPoint.push_back((srcfullObjects[i]));
+            imagePoint1.push_back(srcfullImagePoints[i]);
+            imagePoint2.push_back(dstfullImagePoints[i]);
         }
     }
-    CalibrateResult srcResult=srcCalibrator.getResult();
-    CalibrateResult dstResult=dstCalibrator.getResult();
+    std::cout<<"fix data done!"<<std::endl<<std::flush;
     cv::Mat R,T,E,F;
     /*
         进行立体双目标定
@@ -138,7 +192,7 @@ void StereoCalibrator::calRelative()
             T,                                       //输出型，第一和第二个摄像机之间的平移矩阵
             E,                                       //输出本征矩阵
             F,                                       //输出基础矩阵
-            cv::CALIB_USE_INTRINSIC_GUESS,
+            useSDKParam?cv::CALIB_FIX_INTRINSIC:cv::CALIB_USE_INTRINSIC_GUESS,
             cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 100, 1e-5));
        srcResult.saveCameraParams(srcCalibrator.getOutputFileName(),srcCalibrator.getCalibrationFlags());
        dstResult.saveCameraParams(dstCalibrator.getOutputFileName(),dstCalibrator.getCalibrationFlags());
@@ -146,7 +200,20 @@ void StereoCalibrator::calRelative()
        relative.T=T;
        relative.rms=rms;
        relative.saveRelativeParams(relativeOutputFileName,calibrationFlags);
+       std::cout<<"R:"<<R<<std::endl<<std::flush;
+       //std::cout<<"euler:"<<rot2euler(R)<<std::endl<<std::flush;
+       std::cout<<"T:"<<T<<std::endl<<std::flush;
        std::cout<<"stereo calibrate done!"<<std::endl<<std::flush;
+}
+
+bool StereoCalibrator::getUseSDKParam() const
+{
+    return useSDKParam;
+}
+
+void StereoCalibrator::setUseSDKParam(bool value)
+{
+    useSDKParam = value;
 }
 
 std::string StereoCalibrator::getRelativeOutputFileName() const

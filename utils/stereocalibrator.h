@@ -20,6 +20,9 @@ public:
     CalibrateResult getRelative() const;
     void setRelative(const CalibrateResult &value);
 
+    bool getUseSDKParam() const;
+    void setUseSDKParam(bool value);
+
 private:
     CalibrateResult relative;
     int calibrationFlags;
@@ -27,6 +30,7 @@ private:
     Calibrator dstCalibrator;
     void calRelative();
     std::string relativeOutputFileName;
+    bool useSDKParam;
 };
 
 #endif // STEREOCALIBRATOR_H

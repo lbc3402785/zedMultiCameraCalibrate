@@ -110,10 +110,14 @@ HEADERS += \
         graphics/viewer.h \
         mainwindow.h \
         modelwindow.h \
+        process/geometryfunctions.h \
+        process/pointcloudregister.h \
+        process/transform.h \
         qfilefunctions.h \
         settings.h \
         utils/calibrateresult.h \
         utils/calibrator.h \
+        utils/eigenfunctions.h \
         utils/stereocalibrator.h
 
 FORMS += \

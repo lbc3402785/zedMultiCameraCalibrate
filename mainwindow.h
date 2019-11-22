@@ -46,6 +46,7 @@ private:
     sl::RuntimeParameters runtime_parameters;
     SaveMode saveMode;
     bool useSDKParam;
+    bool useRectified;
 //    cv::Mat leftSbSResult;
 //    cv::Mat middleSbSResult;
 //    cv::Mat rightSbSResult;
@@ -74,9 +75,9 @@ private:
     cv::Mat middleDepth;
     cv::Mat rightDepth;
 
-    cv::Mat leftCloud;
-    cv::Mat middleCloud;
-    cv::Mat rightCloud;
+    EigenMesh leftMesh;
+    EigenMesh middleMesh;
+    EigenMesh rightMesh;
 
     const int FRAME_WIDTH = 2560;
     const int FRAME_HEIGHT = 720;
@@ -111,8 +112,8 @@ private:
     bool readZedCloud(sl::Camera* zed,cv::Mat& cloud,bool wait=false);
     bool detectAndDrawCorners(cv::Mat& image,cv::Mat& grayImage,cv::Mat& drawImage);
     void saveDepth(cv::Mat depth,std::string savePath);
-    void saveCloud(cv::Mat cloud,std::string savePath);
-    void applyRigidTransform(cv::Mat& cloud,CalibrateResult relative);
+    void saveCloud(cv::Mat cloud,EigenMesh& mesh,std::string savePath);
+    void applyRigidTransform(Eigen::Matrix3Xf& cloud,CalibrateResult relative);
     void convertEigenMesh(const cv::Mat& cloud,EigenMesh& mesh);
 private slots:
     void openCamera();

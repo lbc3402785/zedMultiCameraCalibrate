@@ -23,20 +23,20 @@ public:
     std::vector<bool> getUsed() const;
     void setUsed(const std::vector<bool> &value);
 
-    std::vector<std::vector<cv::Point3f> > getObjectPoints() const;
-    void setObjectPoints(const std::vector<std::vector<cv::Point3f> > &value);
-
     CalibrateResult getResult() const;
     void setResult(const CalibrateResult &value);
-
-    std::vector<std::vector<cv::Point2f> > getImagePoints() const;
-    void setImagePoints(const std::vector<std::vector<cv::Point2f> > &value);
 
     int getCalibrationFlags() const;
     void setCalibrationFlags(int value);
 
     bool getUseSDKParam() const;
     void setUseSDKParam(bool value);
+
+    std::vector<std::vector<cv::Point2f> > getFullImagePoints() const;
+    void setFullImagePoints(const std::vector<std::vector<cv::Point2f> > &value);
+
+    std::vector<std::vector<cv::Point3f> > getFullObjectPoints() const;
+    void setFullObjectPoints(const std::vector<std::vector<cv::Point3f> > &value);
 
 private:
     CalibrateResult result;
@@ -46,7 +46,9 @@ private:
     ChessBoardConfig chessBoardConfig;
     std::vector<cv::Mat> images;
     std::vector<cv::Mat> grayImages;
+    std::vector<std::vector<cv::Point2f>> fullImagePoints;
     std::vector<std::vector<cv::Point2f>> imagePoints;
+    std::vector<std::vector<cv::Point3f>> fullObjectPoints;
     std::vector<std::vector<cv::Point3f>> objectPoints;
     std::vector<bool> used;
     void findChessBoardCorners();

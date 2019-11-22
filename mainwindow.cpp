@@ -8,6 +8,7 @@
 
 #include "qfilefunctions.h"
 #include "modelwindow.h"
+#include "process/pointcloudregister.h"
 using namespace sl;
 /**
  * @brief MainWindow::MainWindow
@@ -30,9 +31,9 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->action_Depth->setChecked(false);
     detect=false;
     capturing=false;
-    leftNum=0;
-    middleNum=0;
-    rightNum=0;
+    leftNum=1;
+    middleNum=1;
+    rightNum=1;
     leftTimer=new QTimer(this);
     middleTimer=new QTimer(this);
     rightTimer=new QTimer(this);
@@ -44,7 +45,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     initParams.camera_resolution = RESOLUTION_HD1080;
     initParams.depth_mode = DEPTH_MODE_ULTRA;
-    initParams.coordinate_units = UNIT_METER;
+//    initParams.coordinate_units = UNIT_METER;
+    initParams.coordinate_units =UNIT_MILLIMETER;
     initParams.coordinate_system = COORDINATE_SYSTEM_IMAGE;
     runtime_parameters.sensing_mode = SENSING_MODE_STANDARD;
     depthFactor=1000;
@@ -71,6 +73,7 @@ MainWindow::MainWindow(QWidget *parent) :
     middleStopSignal=false;
     rightStopSignal=false;
     useSDKParam=true;
+    useRectified=false;
     saveMode=SaveMode::IMAGE;
     left2middle=nullptr;
     right2middle=nullptr;
@@ -90,7 +93,12 @@ void MainWindow::zedSetting(sl::Camera* zed)
     zed->setCameraSettings(sl::CAMERA_SETTINGS_WHITEBALANCE, 4600);
     zed->setCameraSettings(sl::CAMERA_SETTINGS_GAIN, 4);
     zed->setCameraSettings(sl::CAMERA_SETTINGS_EXPOSURE, 80);
-    zed->setDepthMaxRangeValue(1);
+    if(initParams.coordinate_units==UNIT_METER){
+        zed->setDepthMaxRangeValue(1);
+    }else if(initParams.coordinate_units==UNIT_MILLIMETER){
+        zed->setDepthMaxRangeValue(1000);
+    }
+
 }
 
 bool MainWindow::checkCameraId()
@@ -107,12 +115,22 @@ bool MainWindow::checkCameraId()
 
 void MainWindow::convertSDKParam(CameraParameters param, Calibrator &calibrator)
 {
+    std::cout<<"convertSDKParam..."<<std::endl<<std::flush;
     CalibrateResult result;
-    result.instrisincMatrix=(cv::Mat_<double>()<<param.fx,0,param.cx,
-                             0,param.fy,param.cy,
-                             0,0,1);
+//    result.instrisincMatrix=(cv::Mat_<double>()<<param.fx,0,param.cx,
+//                             0,param.fy,param.cy,
+//                             0,0,1);
+    result.instrisincMatrix=cv::Mat::zeros(3,3,CV_64F);
+    result.instrisincMatrix.at<double>(0,0)=param.fx;result.instrisincMatrix.at<double>(0,2)=param.cx;
+    result.instrisincMatrix.at<double>(1,1)=param.fy;result.instrisincMatrix.at<double>(1,2)=param.cy;
+    result.instrisincMatrix.at<double>(2,2)=1.0;
+    std::cout<<"instrisincMatrix:"<<result.instrisincMatrix<<std::endl<<std::flush;
     result.distortionCoeff=cv::Mat::zeros(5,1,CV_64F);
+    for(int i=0;i<5;i++){
+        result.distortionCoeff.at<double>(i,0)=param.disto[i];
+    }
     calibrator.setResult(result);
+    std::cout<<"convertSDKParam done!"<<std::endl<<std::flush;
 }
 
 //void MainWindow::openLeft(int leftId)
@@ -233,27 +251,28 @@ void MainWindow::saveLeft(QString imageDir,QString drawDir,QString outputDir)
     switch (saveMode) {
     case SaveMode::IMAGE:
         if(readZedImage(leftZed,left,true)){
-            leftNum++;
-            QString leftPath=leftImageDir+QDir::separator()+"left"+QString::number(leftNum)+"."+surffix;
+
             cv::Mat leftTmp;
             cv::cvtColor(left,leftTmp,CV_BGR2RGB);
             if(detect){
                 if(detectAndDrawCorners(left,leftGrayMat,leftDrawMat)){
+
+                    QString leftPath=leftImageDir+QDir::separator()+"left"+QString::number(leftNum)+"."+surffix;
                     cv::cvtColor(leftDrawMat,leftTmp,CV_BGR2RGB);
+                    leftMats.push_back(left.clone());
+                    leftGrayMats.push_back(leftGrayMat.clone());              
+                    ui->leftLcdNumber->display(leftNum);
+                    leftNum++;
+                    //save image
+                    cv::imwrite(leftPath.toStdString(),left);
+                    leftPath=leftDrawImageDir+QDir::separator()+"left"+QString::number(leftNum)+"."+surffix;
+                    cv::imwrite(leftPath.toStdString(),leftDrawMat);
                 }
             }
             QImage leftImage=QImage((const uchar*)(leftTmp.data),leftTmp.cols,leftTmp.rows,QImage::Format_RGB888);
             QPixmap leftPix=QPixmap::fromImage(leftImage);
             leftScene->clear();
             leftScene->addPixmap(leftPix);
-            //save image
-            cv::imwrite(leftPath.toStdString(),left);
-            leftPath=leftDrawImageDir+QDir::separator()+"left"+QString::number(leftNum)+"."+surffix;
-            cv::imwrite(leftPath.toStdString(),leftDrawMat);
-
-            leftMats.push_back(left);
-            leftGrayMats.push_back(leftGrayMat);
-            ui->leftLcdNumber->display(leftNum);
         }
         break;
     case SaveMode::DEPTH:
@@ -264,9 +283,10 @@ void MainWindow::saveLeft(QString imageDir,QString drawDir,QString outputDir)
         }
         break;
     case SaveMode::CLOUD:
+        cv::Mat leftCloud;
         if(readZedCloud(leftZed,leftCloud,true)){
             QString leftCloudPath=outputDir+QDir::separator()+"left.obj";
-            saveCloud(leftCloud,leftCloudPath.toStdString());
+            saveCloud(leftCloud,leftMesh,leftCloudPath.toStdString());
         }
         break;
     }
@@ -283,28 +303,28 @@ void MainWindow::saveMiddle(QString imageDir, QString drawDir,QString outputDir)
     tmp.mkpath(middleDrawImageDir);
     switch (saveMode) {
     case SaveMode::IMAGE:
-        if(readZedImage(middleZed,middle,true)){
-            middleNum++;
-            QString middlePath=middleImageDir+QDir::separator()+"middle"+QString::number(middleNum)+"."+surffix;
+        if(readZedImage(middleZed,middle,true)){       
             cv::Mat middleTmp;
             cv::cvtColor(middle,middleTmp,CV_BGR2RGB);
             if(detect){
                 if(detectAndDrawCorners(middle,middleGrayMat,middleDrawMat)){
+
+                    QString middlePath=middleImageDir+QDir::separator()+"middle"+QString::number(middleNum)+"."+surffix;
                     cv::cvtColor(middleDrawMat,middleTmp,CV_BGR2RGB);
+                    middleMats.push_back(middle.clone());
+                    middleGrayMats.push_back(middleGrayMat.clone());                
+                    ui->middleLcdNumber->display(middleNum);
+                    middleNum++;
+                    //save image
+                    cv::imwrite(middlePath.toStdString(),middle);
+                    middlePath=middleDrawImageDir+QDir::separator()+"middle"+QString::number(middleNum)+"."+surffix;
+                    cv::imwrite(middlePath.toStdString(),middleDrawMat);
                 }
             }
             QImage middleImage=QImage((const uchar*)(middleTmp.data),middleTmp.cols,middleTmp.rows,QImage::Format_RGB888);
             QPixmap middlePix=QPixmap::fromImage(middleImage);
             middleScene->clear();
             middleScene->addPixmap(middlePix);
-            //save image
-            cv::imwrite(middlePath.toStdString(),middle);
-            middlePath=middleDrawImageDir+QDir::separator()+"middle"+QString::number(middleNum)+"."+surffix;
-            cv::imwrite(middlePath.toStdString(),middleDrawMat);
-
-            middleMats.push_back(middle);
-            middleGrayMats.push_back(middleGrayMat);
-            ui->middleLcdNumber->display(middleNum);
         }
         break;
     case SaveMode::DEPTH:
@@ -315,9 +335,10 @@ void MainWindow::saveMiddle(QString imageDir, QString drawDir,QString outputDir)
         }
         break;
     case SaveMode::CLOUD:
+        cv::Mat middleCloud;
         if(readZedCloud(middleZed,middleCloud,true)){
             QString middleCloudPath=outputDir+QDir::separator()+"middle.obj";
-            saveCloud(middleCloud,middleCloudPath.toStdString());
+            saveCloud(middleCloud,middleMesh,middleCloudPath.toStdString());
         }
         break;
     }
@@ -335,27 +356,29 @@ void MainWindow::saveRight(QString imageDir,QString drawDir,QString outputDir)
     switch (saveMode) {
     case SaveMode::IMAGE:
         if(readZedImage(rightZed,right,true)){
-            rightNum++;
-            QString rightPath=rightImageDir+QDir::separator()+"right"+QString::number(rightNum)+"."+surffix;
             cv::Mat rightTmp;
             cv::cvtColor(right,rightTmp,CV_BGR2RGB);
             if(detect){
                 if(detectAndDrawCorners(right,rightGrayMat,rightDrawMat)){
+
+                    QString rightPath=rightImageDir+QDir::separator()+"right"+QString::number(rightNum)+"."+surffix;
                     cv::cvtColor(rightDrawMat,rightTmp,CV_BGR2RGB);
+                    rightMats.push_back(right.clone());
+                    rightGrayMats.push_back(rightGrayMat.clone());
+                    ui->rightLcdNumber->display(rightNum);
+                    rightNum++;
+
+                    //save image
+                    cv::imwrite(rightPath.toStdString(),right);
+                    rightPath=rightDrawImageDir+QDir::separator()+"right"+QString::number(rightNum)+"."+surffix;
+                    cv::imwrite(rightPath.toStdString(),rightDrawMat);
                 }
             }
             QImage rightImage=QImage((const uchar*)(rightTmp.data),rightTmp.cols,rightTmp.rows,QImage::Format_RGB888);
             QPixmap rightPix=QPixmap::fromImage(rightImage);
             rightScene->clear();
             rightScene->addPixmap(rightPix);
-            //save image
-            cv::imwrite(rightPath.toStdString(),right);
-            rightPath=rightDrawImageDir+QDir::separator()+"right"+QString::number(rightNum)+"."+surffix;
-            cv::imwrite(rightPath.toStdString(),rightDrawMat);
 
-            rightMats.push_back(right);
-            rightGrayMats.push_back(rightGrayMat);
-            ui->rightLcdNumber->display(rightNum);
         }
         break;
     case SaveMode::DEPTH:
@@ -366,9 +389,10 @@ void MainWindow::saveRight(QString imageDir,QString drawDir,QString outputDir)
         }
         break;
     case SaveMode::CLOUD:
+        cv::Mat rightCloud;
         if(readZedCloud(rightZed,rightCloud,true)){
             QString rightCloudPath=outputDir+QDir::separator()+"right.obj";
-            saveDepth(rightDepth,rightCloudPath.toStdString());
+            saveCloud(rightDepth,rightMesh,rightCloudPath.toStdString());
         }
         break;
     }
@@ -388,7 +412,7 @@ bool MainWindow::readZedData(Camera *zed, cv::Mat &out,SaveMode mode, bool wait)
             if (res == sl::SUCCESS) {
                 switch (mode) {
                 case SaveMode::IMAGE:
-                    zed->retrieveImage(aux, sl::VIEW_LEFT, sl::MEM_CPU);
+                    zed->retrieveImage(aux, useRectified?sl::VIEW_LEFT:sl::VIEW_LEFT_UNRECTIFIED, sl::MEM_CPU);
                     out=cv::Mat(aux.getHeight(), aux.getWidth(), CV_8UC4, aux.getPtr<sl::uchar1>(sl::MEM_CPU)).clone();
                     cv::cvtColor(out,out,cv::COLOR_BGRA2BGR);
                     break;
@@ -454,7 +478,7 @@ bool MainWindow::detectAndDrawCorners(cv::Mat &image, cv::Mat &grayImage, cv::Ma
     std::vector<cv::Point2f> leftPointBuf;
     cv::Size checkerBoardSize=cv::Size(sets.chessBoardConfig.boardW,sets.chessBoardConfig.boardH);
     //extract image corner
-    int leftFound=cv::findChessboardCorners(left,checkerBoardSize,leftPointBuf, CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FILTER_QUADS);//the  input arguments  is important
+    int leftFound=cv::findChessboardCorners(image,checkerBoardSize,leftPointBuf, CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FILTER_QUADS);//the  input arguments  is important
     if(leftFound){
         //qDebug()<<"check left corners successful!";
         drawImage=image.clone();
@@ -473,8 +497,10 @@ void MainWindow::saveDepth(cv::Mat depth, std::string savePath)
     imwrite(savePath, depth);
 }
 
-void MainWindow::saveCloud(cv::Mat cloud, std::string savePath)
+void MainWindow::saveCloud(cv::Mat cloud,EigenMesh& mesh, std::string savePath)
 {
+    std::vector<Eigen::Vector3f> pv;
+    std::vector<Eigen::Vector4f> cv;
     std::ofstream out(savePath);
     float zmin = 65536;
     float  zmax = -65535;
@@ -488,30 +514,43 @@ void MainWindow::saveCloud(cv::Mat cloud, std::string savePath)
             if (f4[2] > zmax)zmax = f4[2];
             if (f4[2] < zmin)zmin = f4[2];
             out << "v " << f4[0] << " " <<f4[1] << " " << f4[2] << " ";
+            pv.push_back(Eigen::Vector3f(f4[0],f4[1],f4[2]));
             unsigned char* temp= (unsigned char*)&f4[3];
             out << (int)temp[0] << " " << (int)temp[1] << " " << (int)temp[2];
+            cv.push_back(Eigen::Vector4f((int)temp[0],(int)temp[1],(int)temp[2],255));
             out << std::endl;
         }
     }
     out.close();
+    Eigen::Matrix3Xf points;
+    Eigen::Matrix4Xf colors;
+    points.resize(3,pv.size());
+    colors.resize(4,cv.size());
+    for(i=0;i<pv.size();i++){
+        points.col(i)=pv[i];
+        colors.col(i)=cv[i];
+    }
+    mesh.setPoints(points);
+    mesh.setColors(colors);
 }
 
-void MainWindow::applyRigidTransform(cv::Mat &cloud, CalibrateResult relative)
+void MainWindow::applyRigidTransform(Eigen::Matrix3Xf &cloud, CalibrateResult relative)
 {
     int i,j;
     cv::Mat R=relative.R;
     cv::Mat T=relative.T;
-    cv::Mat tmp=cloud.clone();
-    for (i = 0; i < cloud.rows; i++) {
-        for (j = 0; j < cloud.cols; j++) {
-            cv::Vec4f& f4=cloud.at<cv::Vec4f>(i,j);
-            cv::Vec4f& f4dst=tmp.at<cv::Vec4f>(i,j);
-            f4dst[0]=R.at<double>(0,0)*f4[0]+R.at<double>(0,1)*f4[1]+R.at<double>(0,2)*f4[2]+T.at<double>(0,0);
-            f4dst[1]=R.at<double>(1,0)*f4[0]+R.at<double>(1,1)*f4[1]+R.at<double>(1,2)*f4[2]+T.at<double>(1,0);
-            f4dst[2]=R.at<double>(2,0)*f4[0]+R.at<double>(2,1)*f4[1]+R.at<double>(2,2)*f4[2]+T.at<double>(2,0);
+    Eigen::Matrix<float,3,3> RE=Eigen::Matrix<float,3,3>::Identity();
+    Eigen::Matrix<float,3,1> TE=Eigen::Matrix<float,3,1>::Zero();
+    for(i=0;i<3;i++){
+        for(j=0;j<3;j++){
+            RE(i,j)=R.at<double>(i,j);
         }
+        TE(i,0)=T.at<double>(i,0);
     }
-    tmp.copyTo(cloud);
+    std::cout<<"RE:"<<RE<<std::endl<<std::flush;
+    std::cout<<"TE:"<<TE<<std::endl<<std::flush;
+    cloud=RE*cloud;
+    cloud.colwise()+=TE;
 }
 
 void MainWindow::convertEigenMesh(const cv::Mat& cloud, EigenMesh &mesh)
@@ -773,6 +812,7 @@ void MainWindow::on_clearFile_triggered()
 void MainWindow::on_left2middle_clicked()
 {
     ui->statusBar->showMessage(tr("calibrate two..."), 2000);
+    detect=false;
     Calibrator srcCalibrator,dstCalibrator;
     StereoCalibrator stereoCalibrator;
     QString outputDir=sets.getOutputDir();
@@ -781,6 +821,7 @@ void MainWindow::on_left2middle_clicked()
     QString leftOutputFileName=outputDir+QDir::separator()+"left.yml";
     QString middleOutputFileName=outputDir+QDir::separator()+"middle.yml";
     QString relativeOutputFileName=outputDir+QDir::separator()+"left2middle.yml";
+    std::cout<<"11111111111"<<std::endl<<std::flush;
     if(leftGrayMats.size()>0&&middleGrayMats.size()>0){
         srcCalibrator.setOutputFileName(leftOutputFileName.toStdString());
         srcCalibrator.setImages(leftMats);
@@ -791,7 +832,7 @@ void MainWindow::on_left2middle_clicked()
         dstCalibrator.setImages(middleMats);
         dstCalibrator.setGrayImages(middleGrayMats);
         dstCalibrator.setChessBoardConfig(sets.chessBoardConfig);
-
+        //std::cout<<"*************"<<std::endl<<std::flush;
 
     }else{
         QString imageDir=sets.getImageDir();
@@ -844,7 +885,9 @@ void MainWindow::on_left2middle_clicked()
                 middleGrayImgs.push_back(gray);
             }
         }
+
         if(leftImgs.size()!=middleImgs.size())return;
+        std::cout<<"----------"<<std::endl<<std::flush;
         srcCalibrator.setOutputFileName(leftOutputFileName.toStdString());
         srcCalibrator.setImages(leftImgs);
         srcCalibrator.setGrayImages(leftGrayImgs);
@@ -855,18 +898,32 @@ void MainWindow::on_left2middle_clicked()
         dstCalibrator.setGrayImages(middleGrayImgs);
         dstCalibrator.setChessBoardConfig(sets.chessBoardConfig);
     }
+    //std::cout<<"2222222222"<<std::endl<<std::flush;
     if(useSDKParam){
-        convertSDKParam(leftZed->getCameraInformation().calibration_parameters.left_cam,srcCalibrator);
-        srcCalibrator.setUseSDKParam(true);
-        convertSDKParam(middleZed->getCameraInformation().calibration_parameters.left_cam,dstCalibrator);
-        dstCalibrator.setUseSDKParam(true);
+        if(useRectified){
+            convertSDKParam(leftZed->getCameraInformation().calibration_parameters.left_cam,srcCalibrator);
+            srcCalibrator.setUseSDKParam(true);
+            convertSDKParam(middleZed->getCameraInformation().calibration_parameters.left_cam,dstCalibrator);
+            dstCalibrator.setUseSDKParam(true);
+        }else{
+            convertSDKParam(leftZed->getCameraInformation().calibration_parameters_raw.left_cam,srcCalibrator);
+            srcCalibrator.setUseSDKParam(true);
+            convertSDKParam(middleZed->getCameraInformation().calibration_parameters_raw.left_cam,dstCalibrator);
+            dstCalibrator.setUseSDKParam(true);
+        }
+
     }
+    //std::cout<<"33333333"<<std::endl<<std::flush;
     stereoCalibrator.setSrcCalibrator(srcCalibrator);
     stereoCalibrator.setDstCalibrator(dstCalibrator);
     stereoCalibrator.setRelativeOutputFileName(relativeOutputFileName.toStdString());
     stereoCalibrator.calibrateStereo();
     left2middle=new CalibrateResult();
     *left2middle=stereoCalibrator.getRelative();
+    if(initParams.coordinate_units == UNIT_METER){
+        (*left2middle).T/=1000;
+        std::cout<<"(*left2middle).T:"<<(*left2middle).T<<std::endl<<std::flush;
+    }
     ui->statusBar->showMessage(tr("calibrate two done"), 2000);
 }
 
@@ -893,25 +950,52 @@ void MainWindow::on_action_Depth_triggered()
 
 void MainWindow::on_mergeCloud_triggered()
 {
-    if(!middleCloud.empty()){
-        cv::Mat result=middleCloud.clone();
-        if(!leftCloud.empty()&&left2middle){
-            applyRigidTransform(leftCloud,*left2middle);
-            cv::hconcat(result,leftCloud,result);
+    if(middleMesh.getPoints().size()>0){
+        Eigen::Matrix3Xf origin=middleMesh.getPoints();
+        Eigen::Matrix3Xf points=origin;
+        Eigen::Matrix4Xf colors=middleMesh.getColors();
+        if(leftMesh.getPoints().size()>0&&left2middle){
+            Eigen::Matrix3Xf tmp=leftMesh.getPoints();
+            Eigen::Matrix4Xf tmpC=leftMesh.getColors();
+            applyRigidTransform(tmp,*left2middle);
+            double error;
+            Rigid::PointCloudRegister<float>::registerPoints(tmp,origin,error,3);
+
+            Eigen::Matrix3Xf P(points.rows(), points.cols()+tmp.cols());
+            P<<points,tmp;
+            points=P;
+
+            Eigen::Matrix4Xf C(colors.rows(), colors.cols()+tmpC.cols());
+            C<<colors,tmpC;
+            colors=C;
             std::cout<<"merge left and middle done!"<<std::endl<<std::flush;
-            std::cout<<"result.rows:"<<result.rows<<",result.cols:"<<result.cols<<std::endl<<std::flush;
+            std::cout<<"result.rows:"<<points.rows()<<",result.cols:"<<points.cols()<<std::endl<<std::flush;
         }
-        if(!rightCloud.empty()&&right2middle){
-            applyRigidTransform(rightCloud,*right2middle);
-            cv::hconcat(result,rightCloud,result);
+        if(rightMesh.getPoints().size()>0&&right2middle){
+            Eigen::Matrix3Xf tmp=rightMesh.getPoints();
+            Eigen::Matrix4Xf tmpC=rightMesh.getColors();
+            applyRigidTransform(tmp,*right2middle);
+            double error;
+            Rigid::PointCloudRegister<float>::registerPoints(tmp,origin,error,3);
+
+            Eigen::Matrix3Xf P(points.rows(), points.cols()+tmp.cols());
+            P<<points,tmp;
+            points=P;
+
+            Eigen::Matrix4Xf C(colors.rows(), colors.cols()+tmpC.cols());
+            C<<colors,tmpC;
+            colors=C;
             std::cout<<"merge right and middle done!"<<std::endl<<std::flush;
-            std::cout<<"result.rows:"<<result.rows<<",result.cols:"<<result.cols<<std::endl<<std::flush;
+            std::cout<<"result.rows:"<<points.rows()<<",result.cols:"<<points.cols()<<std::endl<<std::flush;
         }
         EigenMesh src;
-        convertEigenMesh(result,src);
+        src.setPoints(points);
+        src.setColors(colors);
         ModelWindow* modelWindow=new ModelWindow(this);
         modelWindow->inputSrcMesh(src);
         modelWindow->show();
+    }else{
+
     }
 
 }
@@ -919,6 +1003,7 @@ void MainWindow::on_mergeCloud_triggered()
 void MainWindow::on_right2middle_clicked()
 {
     ui->statusBar->showMessage(tr("calibrate two..."), 2000);
+    detect=false;
     Calibrator srcCalibrator,dstCalibrator;
     StereoCalibrator stereoCalibrator;
     QString outputDir=sets.getOutputDir();
@@ -1006,6 +1091,7 @@ void MainWindow::on_right2middle_clicked()
         srcCalibrator.setUseSDKParam(true);
         convertSDKParam(middleZed->getCameraInformation().calibration_parameters.right_cam,dstCalibrator);
         dstCalibrator.setUseSDKParam(true);
+        stereoCalibrator.setUseSDKParam(true);
     }
     stereoCalibrator.setSrcCalibrator(srcCalibrator);
     stereoCalibrator.setDstCalibrator(dstCalibrator);
@@ -1013,5 +1099,9 @@ void MainWindow::on_right2middle_clicked()
     stereoCalibrator.calibrateStereo();
     right2middle=new CalibrateResult();
     *right2middle=stereoCalibrator.getRelative();
+    if(initParams.coordinate_units == UNIT_METER){
+        (*right2middle).T/=1000;
+        std::cout<<"(*right2middle).T:"<<(*right2middle).T<<std::endl<<std::flush;
+    }
     ui->statusBar->showMessage(tr("calibrate two done"), 2000);
 }
