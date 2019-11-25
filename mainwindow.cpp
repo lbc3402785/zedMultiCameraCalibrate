@@ -9,6 +9,7 @@
 #include "qfilefunctions.h"
 #include "modelwindow.h"
 #include "process/pointcloudregister.h"
+static int interval=90;
 using namespace sl;
 /**
  * @brief MainWindow::MainWindow
@@ -590,9 +591,9 @@ void MainWindow::openCamera()
         return;
     }
     openAll(leftId,middleId,rightId);
-    leftTimer->start(10);
-    middleTimer->start(10);
-    rightTimer->start(10);
+    leftTimer->start(interval);
+    middleTimer->start(interval);
+    rightTimer->start(interval);
     ui->leftId->setDisabled(true);
     ui->middleId->setDisabled(true);
     ui->rightId->setDisabled(true);
@@ -715,7 +716,7 @@ void MainWindow::on_openLeft_clicked()
     }
     //openLeft(ui->leftId->currentIndex());
     openLeftZed(ui->leftId->currentIndex());
-    leftTimer->start(10);
+    leftTimer->start(interval);
     ui->leftId->setDisabled(true);
 
 }
@@ -735,7 +736,7 @@ void MainWindow::on_openRight_clicked()
     }
     //openRight(ui->rightId->currentIndex());
     openRightZed(ui->rightId->currentIndex());
-    rightTimer->start(10);
+    rightTimer->start(interval);
     ui->rightId->setDisabled(true);
 }
 
@@ -787,7 +788,7 @@ void MainWindow::on_openMiddle_clicked()
     }
     //openMiddle(ui->middleId->currentIndex());
     openMiddleZed(ui->middleId->currentIndex());
-    middleTimer->start(10);
+    middleTimer->start(interval);
     ui->middleId->setDisabled(true);
 }
 
