@@ -99,9 +99,11 @@ SOURCES += \
         modelwindow.cpp \
         qfilefunctions.cpp \
         settings.cpp \
+        test/test.cpp \
         utils/calibrateresult.cpp \
         utils/calibrator.cpp \
-        utils/stereocalibrator.cpp
+        utils/stereocalibrator.cpp \
+        zedcamerathread.cpp
 
 HEADERS += \
         chessboardconfig.h \
@@ -115,10 +117,13 @@ HEADERS += \
         process/transform.h \
         qfilefunctions.h \
         settings.h \
+        test/test.h \
+        threadsafequeue.h \
         utils/calibrateresult.h \
         utils/calibrator.h \
         utils/eigenfunctions.h \
-        utils/stereocalibrator.h
+        utils/stereocalibrator.h \
+        zedcamerathread.h
 
 FORMS += \
         dialog.ui \
