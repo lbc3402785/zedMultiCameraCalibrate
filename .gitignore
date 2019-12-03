@@ -1,8 +1,8 @@
-/release
-/debug
-/build
-/facedata
-/data
+release/
+debug/
+build/
+facedata/
+data/
 *.pro
 *.pro.*
 Makefile*
