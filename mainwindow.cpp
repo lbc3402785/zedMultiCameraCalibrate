@@ -9,7 +9,7 @@
 #include "qfilefunctions.h"
 #include "modelwindow.h"
 #include "process/pointcloudregister.h"
-static int interval=90;
+static int interval=150;
 using namespace sl;
 /**
  * @brief MainWindow::MainWindow
