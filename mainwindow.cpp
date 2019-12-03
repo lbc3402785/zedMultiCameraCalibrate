@@ -32,15 +32,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->action_Depth->setChecked(false);
     detect=false;
     capturing=false;
-    leftNum=1;
-    middleNum=1;
-    rightNum=1;
-    leftTimer=new QTimer(this);
-    middleTimer=new QTimer(this);
-    rightTimer=new QTimer(this);
-    connect(leftTimer,SIGNAL(timeout()),this,SLOT(readLeftCamera()));
-    connect(middleTimer,SIGNAL(timeout()),this,SLOT(readMiddleCamera()));
-    connect(rightTimer,SIGNAL(timeout()),this,SLOT(readRightCamera()));
+
     connect(ui->open,SIGNAL(clicked()),this,SLOT(openCamera()));
     connect(ui->close,SIGNAL(clicked()),this,SLOT(closeCamera()));
 
@@ -75,9 +67,12 @@ MainWindow::MainWindow(QWidget *parent) :
     rightStopSignal=false;
     useSDKParam=true;
     useRectified=false;
-    saveMode=SaveMode::IMAGE;
+    saveMode=ZedCameraThread::SaveMode::IMAGE;
     left2middle=nullptr;
     right2middle=nullptr;
+    leftShowQueue=new ThreadSafeQueue<QPixmap>();
+    middleShowQueue=new ThreadSafeQueue<QPixmap>();
+    rightShowQueue=new ThreadSafeQueue<QPixmap>();
 }
 
 MainWindow::~MainWindow()
@@ -151,8 +146,6 @@ void MainWindow::openLeftZed(int leftId)
     leftZed=new sl::Camera();
     initParams.input.setFromCameraID(leftId);
     sl::ERROR_CODE err =leftZed->open(initParams);
-    int width, height;
-
     if (err != sl::SUCCESS) {
         std::cout << leftZed->getCameraInformation().camera_model << " n*" << leftId << " -> Result: " << sl::toString(err) << std::endl;
         delete leftZed;
@@ -161,10 +154,13 @@ void MainWindow::openLeftZed(int leftId)
         std::cout << leftZed->getCameraInformation().camera_model << " n*" << leftId << " SN " <<
                      leftZed->getCameraInformation().serial_number << " -> Result: " << sl::toString(err) << std::endl;
     zedSetting(leftZed);
-    width = leftZed->getResolution().width;
-    height = leftZed->getResolution().height;
-    //    leftSbSResult= cv::Mat(height, width * 2, CV_8UC4, 1);
-    left= cv::Mat(height, width, CV_8UC4, 1);
+    leftZedCameraThread=new ZedCameraThread(this);
+    leftZedCameraThread->setId(leftId);
+    leftZedCameraThread->setShowQueue(leftShowQueue);
+    leftZedCameraThread->zed=leftZed;
+    leftZedCameraThread->setSaveMode(saveMode);
+    connect(leftZedCameraThread,&ZedCameraThread::returnQPixmap,this,&MainWindow::showLeft);
+    leftZedCameraThread->start();
 }
 
 void MainWindow::openMiddleZed(int middleId)
@@ -173,68 +169,48 @@ void MainWindow::openMiddleZed(int middleId)
     middleZed=new sl::Camera();
     initParams.input.setFromCameraID(middleId);
     sl::ERROR_CODE err =middleZed->open(initParams);
-    int width, height;
-
     if (err != sl::SUCCESS) {
-        std::cout << middleZed->getCameraInformation().camera_model << " n*" << middleId << " -> Result: " << sl::toString(err) << endl;
+        std::cout << middleZed->getCameraInformation().camera_model << " n*" << middleId << " -> Result: " << sl::toString(err) << std::endl;
         delete middleZed;
         exit(EXIT_FAILURE);
     } else
         std::cout << middleZed->getCameraInformation().camera_model << " n*" << middleId << " SN " <<
                      middleZed->getCameraInformation().serial_number << " -> Result: " << sl::toString(err) << std::endl;
     zedSetting(middleZed);
-    width = middleZed->getResolution().width;
-    height = middleZed->getResolution().height;
-    //    middleSbSResult= cv::Mat(height, width * 2, CV_8UC4, 1);
-    middle= cv::Mat(height, width, CV_8UC4, 1);
+    middleZedCameraThread=new ZedCameraThread(this);
+    middleZedCameraThread->setId(middleId);
+    middleZedCameraThread->setShowQueue(middleShowQueue);
+    middleZedCameraThread->zed=middleZed;
+    middleZedCameraThread->setSaveMode(saveMode);
+    connect(middleZedCameraThread,&ZedCameraThread::returnQPixmap,this,&MainWindow::showMiddle);
+    middleZedCameraThread->start();
 }
 
-//void MainWindow::openMiddle(int middleId)
-//{
-//    middleCapture=cv::VideoCapture(middleId);
-//    if(!middleCapture.isOpened()){
-//        qDebug()<<"open camera id:"<<middleId<<" fail!";
-//    }
-//    middleCapture.set(cv::CAP_PROP_FRAME_WIDTH, FRAME_WIDTH);
-//    middleCapture.set(cv::CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT);
-//}
-
-//void MainWindow::openRight(int rightId)
-//{
-//    rightCapture=cv::VideoCapture(rightId);
-//    if(!rightCapture.isOpened()){
-//        qDebug()<<"open camera id:"<<rightId<<" fail!";
-//    }
-//    rightCapture.set(cv::CAP_PROP_FRAME_WIDTH, FRAME_WIDTH);
-//    rightCapture.set(cv::CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT);
-//}
 void MainWindow::openRightZed(int rightId)
 {
     if(rightZed)return;
     rightZed=new sl::Camera();
     initParams.input.setFromCameraID(rightId);
     sl::ERROR_CODE err =rightZed->open(initParams);
-
-
     if (err != sl::SUCCESS) {
-        std::cout << rightZed->getCameraInformation().camera_model << " n°" << rightZed << " -> Result: " << sl::toString(err) << endl;
+        std::cout << rightZed->getCameraInformation().camera_model << " n*" << rightId << " -> Result: " << sl::toString(err) << std::endl;
         delete rightZed;
         exit(EXIT_FAILURE);
     } else
-        std::cout << rightZed->getCameraInformation().camera_model << " n°" << rightZed << " SN " <<
+        std::cout << rightZed->getCameraInformation().camera_model << " n*" << rightId << " SN " <<
                      rightZed->getCameraInformation().serial_number << " -> Result: " << sl::toString(err) << std::endl;
-
-    int width = rightZed->getResolution().width;
-    int height = rightZed->getResolution().height;
-    //    rightSbSResult= cv::Mat(height, width * 2, CV_8UC4, 1);
-    right= cv::Mat(height, width, CV_8UC4, 1);
+    zedSetting(rightZed);
+    rightZedCameraThread=new ZedCameraThread(this);
+    rightZedCameraThread->setId(rightId);
+    rightZedCameraThread->setShowQueue(rightShowQueue);
+    rightZedCameraThread->zed=rightZed;
+    rightZedCameraThread->setSaveMode(saveMode);
+    connect(rightZedCameraThread,&ZedCameraThread::returnQPixmap,this,&MainWindow::showRight);
+    rightZedCameraThread->start();
 }
 
 void MainWindow::openAll(int leftId,int middleId,int rightId)
 {
-    //    openLeft(leftId);
-    //    openMiddle(middleId);
-    //    openRight(rightId);
     openLeftZed(leftId);
     openMiddleZed(middleId);
     openRightZed(rightId);
@@ -242,298 +218,19 @@ void MainWindow::openAll(int leftId,int middleId,int rightId)
 
 void MainWindow::saveLeft(QString imageDir,QString drawDir,QString outputDir)
 {
-    Settings &sets=Settings::instance();
-    QString surffix=sets.getImageSurffix();
-    QDir tmp;
-    QString leftImageDir=imageDir+QDir::separator()+"left";
-    tmp.mkpath(leftImageDir);
-    QString leftDrawImageDir=drawDir+QDir::separator()+"left";
-    tmp.mkpath(leftDrawImageDir);
-    switch (saveMode) {
-    case SaveMode::IMAGE:
-        if(readZedImage(leftZed,left,true)){
-
-            cv::Mat leftTmp;
-            cv::cvtColor(left,leftTmp,CV_BGR2RGB);
-            if(detect){
-                if(detectAndDrawCorners(left,leftGrayMat,leftDrawMat)){
-
-                    QString leftPath=leftImageDir+QDir::separator()+"left"+QString::number(leftNum)+"."+surffix;
-                    cv::cvtColor(leftDrawMat,leftTmp,CV_BGR2RGB);
-                    leftMats.push_back(left.clone());
-                    leftGrayMats.push_back(leftGrayMat.clone());              
-                    ui->leftLcdNumber->display(leftNum);
-                    leftNum++;
-                    //save image
-                    cv::imwrite(leftPath.toStdString(),left);
-                    leftPath=leftDrawImageDir+QDir::separator()+"left"+QString::number(leftNum)+"."+surffix;
-                    cv::imwrite(leftPath.toStdString(),leftDrawMat);
-                }
-            }
-            QImage leftImage=QImage((const uchar*)(leftTmp.data),leftTmp.cols,leftTmp.rows,QImage::Format_RGB888);
-            QPixmap leftPix=QPixmap::fromImage(leftImage);
-            leftScene->clear();
-            leftScene->addPixmap(leftPix);
-        }
-        break;
-    case SaveMode::DEPTH:
-        if(readZedDepth(leftZed,leftDepth,true)){
-            QString leftDepthPath=outputDir+QDir::separator()+"leftDepth.png";
-            saveDepth(leftDepth,leftDepthPath.toStdString());
-            std::cout<<"save depth "<<leftDepthPath.toStdString()<<" done!"<<std::endl;
-        }
-        break;
-    case SaveMode::CLOUD:
-        cv::Mat leftCloud;
-        if(readZedCloud(leftZed,leftCloud,true)){
-            QString leftCloudPath=outputDir+QDir::separator()+"left.obj";
-            saveCloud(leftCloud,leftMesh,leftCloudPath.toStdString());
-        }
-        break;
-    }
+    if(leftZedCameraThread)leftZedCameraThread->saveZedData(imageDir,drawDir,outputDir);
 }
 
 void MainWindow::saveMiddle(QString imageDir, QString drawDir,QString outputDir)
 {
-    Settings &sets=Settings::instance();
-    QString surffix=sets.getImageSurffix();
-    QDir tmp;
-    QString middleImageDir=imageDir+QDir::separator()+"middle";
-    tmp.mkpath(middleImageDir);
-    QString middleDrawImageDir=drawDir+QDir::separator()+"middle";
-    tmp.mkpath(middleDrawImageDir);
-    switch (saveMode) {
-    case SaveMode::IMAGE:
-        if(readZedImage(middleZed,middle,true)){       
-            cv::Mat middleTmp;
-            cv::cvtColor(middle,middleTmp,CV_BGR2RGB);
-            if(detect){
-                if(detectAndDrawCorners(middle,middleGrayMat,middleDrawMat)){
-
-                    QString middlePath=middleImageDir+QDir::separator()+"middle"+QString::number(middleNum)+"."+surffix;
-                    cv::cvtColor(middleDrawMat,middleTmp,CV_BGR2RGB);
-                    middleMats.push_back(middle.clone());
-                    middleGrayMats.push_back(middleGrayMat.clone());                
-                    ui->middleLcdNumber->display(middleNum);
-                    middleNum++;
-                    //save image
-                    cv::imwrite(middlePath.toStdString(),middle);
-                    middlePath=middleDrawImageDir+QDir::separator()+"middle"+QString::number(middleNum)+"."+surffix;
-                    cv::imwrite(middlePath.toStdString(),middleDrawMat);
-                }
-            }
-            QImage middleImage=QImage((const uchar*)(middleTmp.data),middleTmp.cols,middleTmp.rows,QImage::Format_RGB888);
-            QPixmap middlePix=QPixmap::fromImage(middleImage);
-            middleScene->clear();
-            middleScene->addPixmap(middlePix);
-        }
-        break;
-    case SaveMode::DEPTH:
-        if(readZedDepth(middleZed,middleDepth,true)){
-            QString middleDepthPath=outputDir+QDir::separator()+"middleDepth.png";
-            saveDepth(middleDepth,middleDepthPath.toStdString());
-            std::cout<<"save depth "<<middleDepthPath.toStdString()<<" done!"<<std::endl;
-        }
-        break;
-    case SaveMode::CLOUD:
-        cv::Mat middleCloud;
-        if(readZedCloud(middleZed,middleCloud,true)){
-            QString middleCloudPath=outputDir+QDir::separator()+"middle.obj";
-            saveCloud(middleCloud,middleMesh,middleCloudPath.toStdString());
-        }
-        break;
-    }
+    if(middleZedCameraThread)middleZedCameraThread->saveZedData(imageDir,drawDir,outputDir);
 }
 
 void MainWindow::saveRight(QString imageDir,QString drawDir,QString outputDir)
 {
-    Settings &sets=Settings::instance();
-    QString surffix=sets.getImageSurffix();
-    QDir tmp;
-    QString rightImageDir=imageDir+QDir::separator()+"right";
-    tmp.mkpath(rightImageDir);
-    QString rightDrawImageDir=drawDir+QDir::separator()+"right";
-    tmp.mkpath(rightDrawImageDir);
-    switch (saveMode) {
-    case SaveMode::IMAGE:
-        if(readZedImage(rightZed,right,true)){
-            cv::Mat rightTmp;
-            cv::cvtColor(right,rightTmp,CV_BGR2RGB);
-            if(detect){
-                if(detectAndDrawCorners(right,rightGrayMat,rightDrawMat)){
-
-                    QString rightPath=rightImageDir+QDir::separator()+"right"+QString::number(rightNum)+"."+surffix;
-                    cv::cvtColor(rightDrawMat,rightTmp,CV_BGR2RGB);
-                    rightMats.push_back(right.clone());
-                    rightGrayMats.push_back(rightGrayMat.clone());
-                    ui->rightLcdNumber->display(rightNum);
-                    rightNum++;
-
-                    //save image
-                    cv::imwrite(rightPath.toStdString(),right);
-                    rightPath=rightDrawImageDir+QDir::separator()+"right"+QString::number(rightNum)+"."+surffix;
-                    cv::imwrite(rightPath.toStdString(),rightDrawMat);
-                }
-            }
-            QImage rightImage=QImage((const uchar*)(rightTmp.data),rightTmp.cols,rightTmp.rows,QImage::Format_RGB888);
-            QPixmap rightPix=QPixmap::fromImage(rightImage);
-            rightScene->clear();
-            rightScene->addPixmap(rightPix);
-
-        }
-        break;
-    case SaveMode::DEPTH:
-        if(readZedDepth(rightZed,rightDepth,true)){
-            QString rightDepthPath=outputDir+QDir::separator()+"rightDepth.png";
-            saveDepth(rightDepth,rightDepthPath.toStdString());
-            std::cout<<"save depth "<<rightDepthPath.toStdString()<<" done!"<<std::endl;
-        }
-        break;
-    case SaveMode::CLOUD:
-        cv::Mat rightCloud;
-        if(readZedCloud(rightZed,rightCloud,true)){
-            QString rightCloudPath=outputDir+QDir::separator()+"right.obj";
-            saveCloud(rightDepth,rightMesh,rightCloudPath.toStdString());
-        }
-        break;
-    }
+    if(rightZedCameraThread)rightZedCameraThread->saveZedData(imageDir,drawDir,outputDir);
 }
 
-bool MainWindow::readZedData(Camera *zed, cv::Mat &out,SaveMode mode, bool wait)
-{
-    if(zed==nullptr){
-        std::cout<<"camera is nullptr"<<std::endl;
-        return false;
-    }
-    sl::Mat aux;
-    sl::RuntimeParameters rt_params;
-    if(wait){
-        while(true){
-            sl::ERROR_CODE res = zed->grab(rt_params);
-            if (res == sl::SUCCESS) {
-                switch (mode) {
-                case SaveMode::IMAGE:
-                    zed->retrieveImage(aux, useRectified?sl::VIEW_LEFT:sl::VIEW_LEFT_UNRECTIFIED, sl::MEM_CPU);
-                    out=cv::Mat(aux.getHeight(), aux.getWidth(), CV_8UC4, aux.getPtr<sl::uchar1>(sl::MEM_CPU)).clone();
-                    cv::cvtColor(out,out,cv::COLOR_BGRA2BGR);
-                    break;
-                case SaveMode::DEPTH:
-                    zed->retrieveMeasure(aux, sl::MEASURE_DEPTH, sl::MEM_CPU);
-                    out=cv::Mat(aux.getHeight(), aux.getWidth(), CV_32FC1, aux.getPtr<sl::float1>(sl::MEM_CPU)).clone();
-                    break;
-                case SaveMode::CLOUD:
-                    zed->retrieveMeasure(aux, sl::MEASURE_XYZRGBA, sl::MEM_CPU);
-                    out=cv::Mat(aux.getHeight(), aux.getWidth(), CV_32FC4, aux.getPtr<sl::float1>(sl::MEM_CPU)).clone();
-                    break;
-                }
-
-                break;
-            }else{
-                sl::sleep_ms(1);
-            }
-        }
-        return true;
-    }else{
-
-        sl::ERROR_CODE res = zed->grab(rt_params);
-        if (res == sl::SUCCESS) {
-            switch (mode) {
-            case SaveMode::IMAGE:
-                zed->retrieveImage(aux, sl::VIEW_LEFT, sl::MEM_CPU);
-                cv::Mat(aux.getHeight(), aux.getWidth(), CV_8UC4, aux.getPtr<sl::uchar1>(sl::MEM_CPU)).copyTo(out);
-                break;
-            case SaveMode::DEPTH:
-                zed->retrieveMeasure(aux, sl::MEASURE_DEPTH, sl::MEM_CPU);
-                cv::Mat(aux.getHeight(), aux.getWidth(), CV_32FC1, aux.getPtr<sl::float1>(sl::MEM_CPU)).copyTo(out);
-                break;
-            case SaveMode::CLOUD:
-                zed->retrieveMeasure(aux, sl::MEASURE_XYZRGBA, sl::MEM_CPU);
-                cv::Mat(aux.getHeight(), aux.getWidth(), CV_32FC4, aux.getPtr<sl::float1>(sl::MEM_CPU)).copyTo(out);
-                break;
-            }
-            return true;
-        }else{
-            return false;
-        }
-    }
-}
-
-bool MainWindow::readZedImage(Camera *zed, cv::Mat &image,bool wait)
-{
-    return readZedData(zed,image,SaveMode::IMAGE,wait);
-}
-
-bool MainWindow::readZedDepth(Camera *zed, cv::Mat &depth, bool wait)
-{
-    return readZedData(zed,depth,SaveMode::DEPTH,wait);
-}
-
-bool MainWindow::readZedCloud(Camera *zed, cv::Mat &cloud, bool wait)
-{
-    return readZedData(zed,cloud,SaveMode::CLOUD,wait);
-}
-
-bool MainWindow::detectAndDrawCorners(cv::Mat &image, cv::Mat &grayImage, cv::Mat &drawImage)
-{
-    cv::cvtColor(image,grayImage,CV_BGR2GRAY);
-    std::vector<cv::Point2f> leftPointBuf;
-    cv::Size checkerBoardSize=cv::Size(sets.chessBoardConfig.boardW,sets.chessBoardConfig.boardH);
-    //extract image corner
-    int leftFound=cv::findChessboardCorners(image,checkerBoardSize,leftPointBuf, CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FILTER_QUADS);//the  input arguments  is important
-    if(leftFound){
-        //qDebug()<<"check left corners successful!";
-        drawImage=image.clone();
-        cv::cornerSubPix( grayImage, leftPointBuf, cv::Size(11,11),
-                          cv::Size(-1,-1), cv::TermCriteria( CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 30, 0.1 ));
-        cv::drawChessboardCorners(drawImage,checkerBoardSize,leftPointBuf,leftFound);
-        return true;
-    }else{
-        return false;
-    }
-}
-
-void MainWindow::saveDepth(cv::Mat depth, std::string savePath)
-{
-    depth = cv::max(cv::min(depth*depthFactor, 65000.0), 0.0);
-    imwrite(savePath, depth);
-}
-
-void MainWindow::saveCloud(cv::Mat cloud,EigenMesh& mesh, std::string savePath)
-{
-    std::vector<Eigen::Vector3f> pv;
-    std::vector<Eigen::Vector4f> cv;
-    std::ofstream out(savePath);
-    float zmin = 65536;
-    float  zmax = -65535;
-    int i,j;
-    std::cout<<" cloud.rows:"<< cloud.rows<<" cloud.cols:"<< cloud.cols<<std::endl<<std::flush;
-    for (i = 0; i < cloud.rows; i++) {
-        for (j = 0; j < cloud.cols; j++) {
-            cv::Vec4f f4=cloud.at<cv::Vec4f>(i,j);
-            if (std::isnan(f4[0]) || std::isnan(f4[1]) || std::isnan(f4[2]))continue;
-            if (std::isinf(f4[0]) || std::isinf(f4[1]) || std::isinf(f4[2]))continue;
-            if (f4[2] > zmax)zmax = f4[2];
-            if (f4[2] < zmin)zmin = f4[2];
-            out << "v " << f4[0] << " " <<f4[1] << " " << f4[2] << " ";
-            pv.push_back(Eigen::Vector3f(f4[0],f4[1],f4[2]));
-            unsigned char* temp= (unsigned char*)&f4[3];
-            out << (int)temp[0] << " " << (int)temp[1] << " " << (int)temp[2];
-            cv.push_back(Eigen::Vector4f((int)temp[0],(int)temp[1],(int)temp[2],255));
-            out << std::endl;
-        }
-    }
-    out.close();
-    Eigen::Matrix3Xf points;
-    Eigen::Matrix4Xf colors;
-    points.resize(3,pv.size());
-    colors.resize(4,cv.size());
-    for(i=0;i<pv.size();i++){
-        points.col(i)=pv[i];
-        colors.col(i)=cv[i];
-    }
-    mesh.setPoints(points);
-    mesh.setColors(colors);
-}
 
 void MainWindow::applyRigidTransform(Eigen::Matrix3Xf &cloud, CalibrateResult relative)
 {
@@ -591,87 +288,14 @@ void MainWindow::openCamera()
         return;
     }
     openAll(leftId,middleId,rightId);
-    leftTimer->start(interval);
-    middleTimer->start(interval);
-    rightTimer->start(interval);
     ui->leftId->setDisabled(true);
     ui->middleId->setDisabled(true);
     ui->rightId->setDisabled(true);
 }
 
-void MainWindow::readCamera()
-{
-    readLeftCamera();
-    readMiddleCamera();
-    readRightCamera();
-}
-
-void MainWindow::readLeftCamera()
-{
-    if(capturing)return;
-    if(!leftStopSignal){
-        if (readZedImage(leftZed,left)) {
-            cv::Mat leftTmp;
-            cv::cvtColor(left,leftTmp,CV_BGR2RGB);
-            if(detect){
-                if(detectAndDrawCorners(left,leftGrayMat,leftDrawMat)){
-                    cv::cvtColor(leftDrawMat,leftTmp,CV_BGR2RGB);
-                }
-            }
-            QImage leftImage=QImage((const uchar*)(leftTmp.data),leftTmp.cols,leftTmp.rows,QImage::Format_RGB888);
-            QPixmap leftPix=QPixmap::fromImage(leftImage);
-            leftScene->clear();
-            leftScene->addPixmap(leftPix);
-        }
-    }
-}
-
-void MainWindow::readMiddleCamera()
-{
-    if(capturing)return;
-    if(!middleStopSignal){
-        if (readZedImage(middleZed,middle)) {
-            cv::Mat middleTmp;
-            cv::cvtColor(middle,middleTmp,CV_BGR2RGB);
-            if(detect){
-                if(detectAndDrawCorners(middle,middleGrayMat,middleDrawMat)){
-                    cv::cvtColor(middleDrawMat,middleTmp,CV_BGR2RGB);
-                }
-            }
-            QImage middleImage=QImage((const uchar*)(middleTmp.data),middleTmp.cols,middleTmp.rows,QImage::Format_RGB888);
-            QPixmap middlePix=QPixmap::fromImage(middleImage);
-            middleScene->clear();
-            middleScene->addPixmap(middlePix);
-        }
-    }
-}
-
-void MainWindow::readRightCamera()
-{
-    if(capturing)return;
-    if(!rightStopSignal){
-        if (readZedImage(rightZed,right)) {
-            cv::Mat rightTmp;
-            cv::cvtColor(right,rightTmp,CV_BGR2RGB);
-            if(detect){
-                if(detectAndDrawCorners(right,rightGrayMat,rightDrawMat)){
-                    cv::cvtColor(rightDrawMat,rightTmp,CV_BGR2RGB);
-                }
-            }
-            QImage rightImage=QImage((const uchar*)(rightTmp.data),rightTmp.cols,rightTmp.rows,QImage::Format_RGB888);
-            QPixmap rightPix=QPixmap::fromImage(rightImage);
-            rightScene->clear();
-            rightScene->addPixmap(rightPix);
-        }
-    }
-
-}
 
 void MainWindow::closeCamera()
 {
-    leftTimer->stop();
-    middleTimer->stop();
-    rightTimer->stop();
     ui->leftId->setDisabled(false);
     ui->middleId->setDisabled(false);
     ui->rightId->setDisabled(false);
@@ -716,14 +340,12 @@ void MainWindow::on_openLeft_clicked()
     }
     //openLeft(ui->leftId->currentIndex());
     openLeftZed(ui->leftId->currentIndex());
-    leftTimer->start(interval);
     ui->leftId->setDisabled(true);
 
 }
 
 void MainWindow::on_closeLeft_clicked()
 {
-    leftTimer->stop();
     ui->leftId->setDisabled(false);
     leftScene->clear();
 }
@@ -736,13 +358,11 @@ void MainWindow::on_openRight_clicked()
     }
     //openRight(ui->rightId->currentIndex());
     openRightZed(ui->rightId->currentIndex());
-    rightTimer->start(interval);
     ui->rightId->setDisabled(true);
 }
 
 void MainWindow::on_closeRight_clicked()
 {
-    rightTimer->stop();
     ui->rightId->setDisabled(false);
     rightScene->clear();
 }
@@ -788,13 +408,11 @@ void MainWindow::on_openMiddle_clicked()
     }
     //openMiddle(ui->middleId->currentIndex());
     openMiddleZed(ui->middleId->currentIndex());
-    middleTimer->start(interval);
     ui->middleId->setDisabled(true);
 }
 
 void MainWindow::on_closeMiddle_clicked()
 {
-    middleTimer->stop();
     ui->middleId->setDisabled(false);
     middleScene->clear();
 }
@@ -805,9 +423,6 @@ void MainWindow::on_clearFile_triggered()
     QFileFunctions::clearFolder(sets.getDrawDir(),false);
     QFileFunctions::clearFolder(sets.getImageDir(),false);
     QFileFunctions::clearFolder(sets.getOutputDir(),false);
-    leftNum=0;
-    middleNum=0;
-    rightNum=0;
 }
 
 void MainWindow::on_left2middle_clicked()
@@ -932,21 +547,21 @@ void MainWindow::on_action_Image_triggered()
 {
     ui->action_Cloud->setChecked(false);
     ui->action_Depth->setChecked(false);
-    saveMode=SaveMode::IMAGE;
+    saveMode=ZedCameraThread::SaveMode::IMAGE;
 }
 
 void MainWindow::on_action_Cloud_triggered()
 {
     ui->action_Image->setChecked(false);
     ui->action_Depth->setChecked(false);
-    saveMode=SaveMode::CLOUD;
+    saveMode=ZedCameraThread::SaveMode::CLOUD;
 }
 
 void MainWindow::on_action_Depth_triggered()
 {
     ui->action_Cloud->setChecked(false);
     ui->action_Image->setChecked(false);
-    saveMode=SaveMode::DEPTH;
+    saveMode=ZedCameraThread::SaveMode::DEPTH;
 }
 
 void MainWindow::on_mergeCloud_triggered()
@@ -1105,4 +720,36 @@ void MainWindow::on_right2middle_clicked()
         std::cout<<"(*right2middle).T:"<<(*right2middle).T<<std::endl<<std::flush;
     }
     ui->statusBar->showMessage(tr("calibrate two done"), 2000);
+}
+
+void MainWindow::showLeft()
+{
+    QPixmap leftPix;
+    if(leftShowQueue->TryPop(leftPix)){
+        leftScene->clear();
+        leftScene->addPixmap(leftPix);
+        //std::cout<<"showLeft"<<std::endl<<std::flush;
+    }
+}
+
+void MainWindow::showMiddle()
+{
+    QPixmap middlePix;
+    //middleShowQueue->WaitAndPop(middlePix);
+    if(middleShowQueue->TryPop(middlePix)){
+        //middleScene->clear();
+        middleScene->addPixmap(middlePix);
+        //std::cout<<"showMiddle"<<std::endl<<std::flush;
+    }
+}
+
+void MainWindow::showRight()
+{
+    QPixmap rightPix;
+    //rightShowQueue->WaitAndPop(rightPix);
+    if(rightShowQueue->TryPop(rightPix)){
+        //rightScene->clear();
+        rightScene->addPixmap(rightPix);
+        //std::cout<<"showRight"<<std::endl<<std::flush;
+    }
 }
