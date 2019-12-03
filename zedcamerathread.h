@@ -20,9 +20,6 @@ public:
     // QThread interface
     int getId() const;
     void setId(int value);
-
-
-
     bool readZedData(sl::Camera* zed,cv::Mat& out,SaveMode mode,bool wait=false);
     bool readZedImage(sl::Camera* zed,cv::Mat& image,bool wait=false);
     bool readZedDepth(sl::Camera* zed,cv::Mat& depth,bool wait=false);
@@ -39,6 +36,13 @@ public:
     SaveMode getSaveMode() const;
     void setSaveMode(const SaveMode &value);
 
+    bool getDetect() const;
+    void setDetect(bool value);
+
+    bool getStopSignal() const;
+    void setStopSignal(bool value);
+public slots:
+    void close();
 protected:
     void run();
 private:
@@ -51,18 +55,18 @@ private:
     bool check;
     bool capturing;
     SaveMode saveMode;
-    bool leftStopSignal;
-    cv::Mat left;
-    cv::Mat leftGrayMat;
-    cv::Mat leftDrawMat;
-    cv::Mat leftDepth;
-    EigenMesh leftMesh;
+    bool stopSignal;
+    cv::Mat image;
+    cv::Mat imageGrayMat;
+    cv::Mat imageDrawMat;
+    cv::Mat depth;
+    EigenMesh mesh;
     Settings& sets=Settings::instance();
     float depthFactor;
 
-    std::vector<cv::Mat> leftMats;
-    std::vector<cv::Mat> leftGrayMats;
-    int leftNum;
+    std::vector<cv::Mat> mats;
+    std::vector<cv::Mat> grayMats;
+    int num;
 signals:
     void returnQPixmap();
 };

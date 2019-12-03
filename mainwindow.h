@@ -24,6 +24,11 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+    void closeZed(sl::Camera**zed);
+    void closeCameraThead(ZedCameraThread**t);
+    void closeLeftCamera();
+    void closeMiddleCamera();
+    void closeRightCamera();
 private:
     void zedSetting(sl::Camera* zed);
     bool checkCameraId();
@@ -102,6 +107,7 @@ private:
 //    void openRight(int rightId);
     void openRightZed(int rightId);
     void openAll(int leftId,int middleId,int rightId);
+    void closeAll();
     void saveLeft(QString imageDir,QString drawDir,QString outputDir);
     void saveMiddle(QString imageDir,QString drawDir,QString outputDir);
     void saveRight(QString imageDir,QString drawDir,QString outputDir);
@@ -135,6 +141,10 @@ private slots:
     void showLeft();
     void showMiddle();
     void showRight();
+signals:
+    void closeLeftCameraThread();
+    void closeMiddleCameraThread();
+    void closeRightCameraThread();
 };
 
 #endif // MAINWINDOW_H

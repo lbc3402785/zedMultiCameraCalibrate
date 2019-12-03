@@ -2,7 +2,7 @@
 #include <QPixmap>
 #include <QDir>
 #include <QCameraInfo>
-static int interval=90;
+static int interval=300;
 using namespace sl;
 ZedCameraThread::ZedCameraThread(QObject *parent):QThread(parent)
 {
@@ -11,7 +11,7 @@ ZedCameraThread::ZedCameraThread(QObject *parent):QThread(parent)
     useRectified=false;
     depthFactor=1000;
     capturing=false;
-    leftStopSignal=false;
+    stopSignal=false;
 }
 
 ZedCameraThread::~ZedCameraThread()
@@ -33,6 +33,33 @@ void ZedCameraThread::run()
     connect(timer,&QTimer::timeout,this,&ZedCameraThread::readCamera);
     this->exec();//此句必须有，否则线程会立即结束
 
+}
+
+bool ZedCameraThread::getStopSignal() const
+{
+    return stopSignal;
+}
+
+void ZedCameraThread::setStopSignal(bool value)
+{
+    stopSignal = value;
+}
+
+void ZedCameraThread::close()
+{
+    std::cout<<id<<" thread close"<<std::endl<<std::flush;
+    stopSignal=true;
+    timer->stop();
+}
+
+bool ZedCameraThread::getDetect() const
+{
+    return detect;
+}
+
+void ZedCameraThread::setDetect(bool value)
+{
+    detect = value;
 }
 
 ZedCameraThread::SaveMode ZedCameraThread::getSaveMode() const
@@ -66,22 +93,22 @@ void ZedCameraThread::saveZedData(QString imageDir,QString drawDir,QString outpu
     tmp.mkpath(leftDrawImageDir);
     switch (saveMode) {
     case SaveMode::IMAGE:
-        if(readZedImage(zed,left,true)){
+        if(readZedImage(zed,image,true)){
 
             cv::Mat leftTmp;
-            cv::cvtColor(left,leftTmp,CV_BGR2RGB);
+            cv::cvtColor(image,leftTmp,CV_BGR2RGB);
             if(detect){
-                if(detectAndDrawCorners(left,leftGrayMat,leftDrawMat)){
+                if(detectAndDrawCorners(image,imageGrayMat,imageDrawMat)){
 
-                    QString leftPath=leftImageDir+QDir::separator()+"left"+QString::number(leftNum)+"."+surffix;
-                    cv::cvtColor(leftDrawMat,leftTmp,CV_BGR2RGB);
-                    leftMats.push_back(left.clone());
-                    leftGrayMats.push_back(leftGrayMat.clone());
-                    leftNum++;
+                    QString leftPath=leftImageDir+QDir::separator()+"left"+QString::number(num)+"."+surffix;
+                    cv::cvtColor(imageDrawMat,leftTmp,CV_BGR2RGB);
+                    mats.push_back(image.clone());
+                    grayMats.push_back(imageGrayMat.clone());
+                    num++;
                     //save image
-                    cv::imwrite(leftPath.toStdString(),left);
-                    leftPath=leftDrawImageDir+QDir::separator()+"left"+QString::number(leftNum)+"."+surffix;
-                    cv::imwrite(leftPath.toStdString(),leftDrawMat);
+                    cv::imwrite(leftPath.toStdString(),image);
+                    leftPath=leftDrawImageDir+QDir::separator()+"left"+QString::number(num)+"."+surffix;
+                    cv::imwrite(leftPath.toStdString(),imageDrawMat);
                 }
             }
             QImage leftImage=QImage((const uchar*)(leftTmp.data),leftTmp.cols,leftTmp.rows,QImage::Format_RGB888);
@@ -91,9 +118,9 @@ void ZedCameraThread::saveZedData(QString imageDir,QString drawDir,QString outpu
         }
         break;
     case SaveMode::DEPTH:
-        if(readZedDepth(zed,leftDepth,true)){
+        if(readZedDepth(zed,depth,true)){
             QString leftDepthPath=outputDir+QDir::separator()+"leftDepth.png";
-            saveDepth(leftDepth,leftDepthPath.toStdString());
+            saveDepth(depth,leftDepthPath.toStdString());
             std::cout<<"save depth "<<leftDepthPath.toStdString()<<" done!"<<std::endl;
         }
         break;
@@ -101,7 +128,7 @@ void ZedCameraThread::saveZedData(QString imageDir,QString drawDir,QString outpu
         cv::Mat leftCloud;
         if(readZedCloud(zed,leftCloud,true)){
             QString leftCloudPath=outputDir+QDir::separator()+"left.obj";
-            saveCloud(leftCloud,leftMesh,leftCloudPath.toStdString());
+            saveCloud(leftCloud,mesh,leftCloudPath.toStdString());
         }
         break;
     }
@@ -213,13 +240,13 @@ bool ZedCameraThread::detectAndDrawCorners(cv::Mat &image, cv::Mat &grayImage, c
 void ZedCameraThread::readCamera()
 {
     if(capturing)return;
-    if(!leftStopSignal&&showQueue){
-        if (readZedImage(zed,left)) {
+    if(!stopSignal&&showQueue){
+        if (readZedImage(zed,image)) {
             cv::Mat leftTmp;
-            cv::cvtColor(left,leftTmp,CV_BGR2RGB);
+            cv::cvtColor(image,leftTmp,CV_BGR2RGB);
             if(detect){
-                if(detectAndDrawCorners(left,leftGrayMat,leftDrawMat)){
-                    cv::cvtColor(leftDrawMat,leftTmp,CV_BGR2RGB);
+                if(detectAndDrawCorners(image,imageGrayMat,imageDrawMat)){
+                    cv::cvtColor(imageDrawMat,leftTmp,CV_BGR2RGB);
                 }
             }
             QImage leftImage=QImage((const uchar*)(leftTmp.data),leftTmp.cols,leftTmp.rows,QImage::Format_RGB888);
