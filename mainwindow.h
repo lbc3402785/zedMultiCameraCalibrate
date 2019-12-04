@@ -10,7 +10,8 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <sl/Camera.hpp>
 #include "utils/stereocalibrator.h"
-
+#include <QThread>
+#include <QTimer>
 #include "zedcamerathread.h"
 namespace Ui {
 class MainWindow;
@@ -63,6 +64,9 @@ private:
 //    cv::Mat leftFrame;
 //    cv::Mat middleFrame;
 //    cv::Mat rightFrame;
+    QTime* leftTimer;
+    QTime* middleTimer;
+    QTime* rightTimer;
     QGraphicsScene* leftScene;
     QGraphicsScene* middleScene;
     QGraphicsScene* rightScene;

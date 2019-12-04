@@ -33,6 +33,9 @@ MainWindow::MainWindow(QWidget *parent) :
     detect=false;
     capturing=false;
 
+    leftTimer=new QTimer();
+    leftTimer->start(interval);
+    connect(leftTimer,&QTimer::timeout,this,&MainWindow::showLeft);
     connect(ui->open,SIGNAL(clicked()),this,SLOT(openCamera()));
     connect(ui->close,SIGNAL(clicked()),this,SLOT(closeCamera()));
 
