@@ -22,12 +22,12 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    leftScene=new QGraphicsScene(this);
-    middleScene=new QGraphicsScene(this);
-    rightScene=new QGraphicsScene(this);
-    ui->leftView->setScene(leftScene);
-    ui->middleView->setScene(middleScene);
-    ui->rightView->setScene(rightScene);
+//    leftScene=new QGraphicsScene(this);
+//    middleScene=new QGraphicsScene(this);
+//    rightScene=new QGraphicsScene(this);
+//    ui->leftView->setScene(leftScene);
+//    ui->middleView->setScene(middleScene);
+//    ui->rightView->setScene(rightScene);
     ui->action_Cloud->setChecked(false);
     ui->action_Depth->setChecked(false);
     detect=false;
@@ -420,7 +420,7 @@ void MainWindow::closeRightCamera()
 void MainWindow::on_closeLeft_clicked()
 {
     ui->leftId->setDisabled(false);
-    leftScene->clear();
+    //leftScene->clear();
     closeLeftCamera();
 }
 
@@ -803,8 +803,10 @@ void MainWindow::showLeft()
     QPixmap leftPix;
     if(leftShowQueue->TryPop(leftPix)){
         //leftScene->clear();
-        leftScene->addPixmap(leftPix);
+        //leftScene->addPixmap(leftPix);
         //std::cout<<"showLeft"<<std::endl<<std::flush;
+        leftPix = leftPix.scaled(ui->leftView->size(),Qt::KeepAspectRatio);
+        ui->leftView->setPixmap(leftPix);
     }
 }
 
@@ -814,7 +816,8 @@ void MainWindow::showMiddle()
     //middleShowQueue->WaitAndPop(middlePix);
     if(middleShowQueue->TryPop(middlePix)){
         //middleScene->clear();
-        middleScene->addPixmap(middlePix);
+        middlePix = middlePix.scaled(ui->leftView->size(),Qt::KeepAspectRatio);
+        ui->middleView->setPixmap(middlePix);
         //std::cout<<"showMiddle"<<std::endl<<std::flush;
     }
 }
@@ -825,7 +828,8 @@ void MainWindow::showRight()
     //rightShowQueue->WaitAndPop(rightPix);
     if(rightShowQueue->TryPop(rightPix)){
         //rightScene->clear();
-        rightScene->addPixmap(rightPix);
+        rightPix = rightPix.scaled(ui->leftView->size(),Qt::KeepAspectRatio);
+        ui->middleView->setPixmap(rightPix);
         //std::cout<<"showRight"<<std::endl<<std::flush;
     }
 }

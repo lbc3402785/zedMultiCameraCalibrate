@@ -113,8 +113,9 @@ void ZedCameraThread::saveZedData(QString imageDir,QString drawDir,QString outpu
             }
             QImage leftImage=QImage((const uchar*)(leftTmp.data),leftTmp.cols,leftTmp.rows,QImage::Format_RGB888);
             QPixmap leftPix=QPixmap::fromImage(leftImage);
-            showQueue->WaitAndPush(leftPix);
-            emit returnQPixmap();
+            if(showQueue->TryPush(leftPix)){
+                emit returnQPixmap();
+            }
         }
         break;
     case SaveMode::DEPTH:

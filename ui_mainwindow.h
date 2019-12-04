@@ -13,7 +13,6 @@
 #include <QtWidgets/QAction>
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QComboBox>
-#include <QtWidgets/QGraphicsView>
 #include <QtWidgets/QGridLayout>
 #include <QtWidgets/QHBoxLayout>
 #include <QtWidgets/QLCDNumber>
@@ -40,39 +39,39 @@ public:
     QAction *mergeCloud;
     QWidget *centralWidget;
     QGridLayout *gridLayout_4;
-    QGridLayout *gridLayout;
-    QComboBox *leftId;
-    QPushButton *openLeft;
-    QPushButton *closeLeft;
-    QLCDNumber *leftLcdNumber;
-    QLabel *left;
-    QPushButton *saveLeft;
-    QGraphicsView *leftView;
-    QGridLayout *gridLayout_2;
-    QLabel *middle;
-    QComboBox *middleId;
-    QGraphicsView *middleView;
-    QPushButton *openMiddle;
-    QPushButton *closeMiddle;
-    QPushButton *saveMiddle;
-    QLCDNumber *middleLcdNumber;
-    QGridLayout *gridLayout_3;
-    QLabel *right;
-    QComboBox *rightId;
-    QGraphicsView *rightView;
-    QPushButton *openRight;
-    QPushButton *closeRight;
-    QPushButton *saveRight;
-    QLCDNumber *rightLcdNumber;
     QHBoxLayout *horizontalLayout;
     QPushButton *open;
     QPushButton *close;
-    QHBoxLayout *horizontalLayout_2;
-    QPushButton *left2middle;
-    QPushButton *right2middle;
+    QGridLayout *gridLayout_3;
+    QComboBox *rightId;
+    QPushButton *saveRight;
+    QLCDNumber *rightLcdNumber;
+    QPushButton *openRight;
+    QLabel *right;
+    QPushButton *closeRight;
+    QLabel *rightView;
+    QGridLayout *gridLayout;
+    QPushButton *saveLeft;
+    QLCDNumber *leftLcdNumber;
+    QPushButton *closeLeft;
+    QLabel *left;
+    QComboBox *leftId;
+    QPushButton *openLeft;
+    QLabel *leftView;
     QHBoxLayout *horizontalLayout_3;
     QPushButton *check;
     QPushButton *save;
+    QGridLayout *gridLayout_2;
+    QPushButton *saveMiddle;
+    QPushButton *openMiddle;
+    QPushButton *closeMiddle;
+    QLCDNumber *middleLcdNumber;
+    QComboBox *middleId;
+    QLabel *middleView;
+    QLabel *middle;
+    QHBoxLayout *horizontalLayout_2;
+    QPushButton *left2middle;
+    QPushButton *right2middle;
     QMenuBar *menuBar;
     QMenu *file;
     QMenu *tool;
@@ -111,132 +110,6 @@ public:
         gridLayout_4->setSpacing(6);
         gridLayout_4->setContentsMargins(11, 11, 11, 11);
         gridLayout_4->setObjectName(QString::fromUtf8("gridLayout_4"));
-        gridLayout = new QGridLayout();
-        gridLayout->setSpacing(6);
-        gridLayout->setObjectName(QString::fromUtf8("gridLayout"));
-        leftId = new QComboBox(centralWidget);
-        leftId->setObjectName(QString::fromUtf8("leftId"));
-
-        gridLayout->addWidget(leftId, 0, 2, 1, 1);
-
-        openLeft = new QPushButton(centralWidget);
-        openLeft->setObjectName(QString::fromUtf8("openLeft"));
-
-        gridLayout->addWidget(openLeft, 2, 0, 1, 1);
-
-        closeLeft = new QPushButton(centralWidget);
-        closeLeft->setObjectName(QString::fromUtf8("closeLeft"));
-
-        gridLayout->addWidget(closeLeft, 2, 1, 1, 2);
-
-        leftLcdNumber = new QLCDNumber(centralWidget);
-        leftLcdNumber->setObjectName(QString::fromUtf8("leftLcdNumber"));
-
-        gridLayout->addWidget(leftLcdNumber, 3, 1, 1, 2);
-
-        left = new QLabel(centralWidget);
-        left->setObjectName(QString::fromUtf8("left"));
-        left->setAlignment(Qt::AlignCenter);
-
-        gridLayout->addWidget(left, 0, 0, 1, 2);
-
-        saveLeft = new QPushButton(centralWidget);
-        saveLeft->setObjectName(QString::fromUtf8("saveLeft"));
-
-        gridLayout->addWidget(saveLeft, 3, 0, 1, 1);
-
-        leftView = new QGraphicsView(centralWidget);
-        leftView->setObjectName(QString::fromUtf8("leftView"));
-
-        gridLayout->addWidget(leftView, 1, 0, 1, 3);
-
-
-        gridLayout_4->addLayout(gridLayout, 0, 0, 1, 1);
-
-        gridLayout_2 = new QGridLayout();
-        gridLayout_2->setSpacing(6);
-        gridLayout_2->setObjectName(QString::fromUtf8("gridLayout_2"));
-        middle = new QLabel(centralWidget);
-        middle->setObjectName(QString::fromUtf8("middle"));
-        middle->setAlignment(Qt::AlignCenter);
-
-        gridLayout_2->addWidget(middle, 0, 0, 1, 1);
-
-        middleId = new QComboBox(centralWidget);
-        middleId->setObjectName(QString::fromUtf8("middleId"));
-
-        gridLayout_2->addWidget(middleId, 0, 1, 1, 1);
-
-        middleView = new QGraphicsView(centralWidget);
-        middleView->setObjectName(QString::fromUtf8("middleView"));
-
-        gridLayout_2->addWidget(middleView, 1, 0, 1, 2);
-
-        openMiddle = new QPushButton(centralWidget);
-        openMiddle->setObjectName(QString::fromUtf8("openMiddle"));
-
-        gridLayout_2->addWidget(openMiddle, 2, 0, 1, 1);
-
-        closeMiddle = new QPushButton(centralWidget);
-        closeMiddle->setObjectName(QString::fromUtf8("closeMiddle"));
-
-        gridLayout_2->addWidget(closeMiddle, 2, 1, 1, 1);
-
-        saveMiddle = new QPushButton(centralWidget);
-        saveMiddle->setObjectName(QString::fromUtf8("saveMiddle"));
-
-        gridLayout_2->addWidget(saveMiddle, 3, 0, 1, 1);
-
-        middleLcdNumber = new QLCDNumber(centralWidget);
-        middleLcdNumber->setObjectName(QString::fromUtf8("middleLcdNumber"));
-
-        gridLayout_2->addWidget(middleLcdNumber, 3, 1, 1, 1);
-
-
-        gridLayout_4->addLayout(gridLayout_2, 0, 1, 1, 1);
-
-        gridLayout_3 = new QGridLayout();
-        gridLayout_3->setSpacing(6);
-        gridLayout_3->setObjectName(QString::fromUtf8("gridLayout_3"));
-        right = new QLabel(centralWidget);
-        right->setObjectName(QString::fromUtf8("right"));
-        right->setAlignment(Qt::AlignCenter);
-
-        gridLayout_3->addWidget(right, 0, 0, 1, 2);
-
-        rightId = new QComboBox(centralWidget);
-        rightId->setObjectName(QString::fromUtf8("rightId"));
-
-        gridLayout_3->addWidget(rightId, 0, 2, 1, 1);
-
-        rightView = new QGraphicsView(centralWidget);
-        rightView->setObjectName(QString::fromUtf8("rightView"));
-
-        gridLayout_3->addWidget(rightView, 1, 0, 1, 3);
-
-        openRight = new QPushButton(centralWidget);
-        openRight->setObjectName(QString::fromUtf8("openRight"));
-
-        gridLayout_3->addWidget(openRight, 2, 0, 1, 1);
-
-        closeRight = new QPushButton(centralWidget);
-        closeRight->setObjectName(QString::fromUtf8("closeRight"));
-
-        gridLayout_3->addWidget(closeRight, 2, 1, 1, 2);
-
-        saveRight = new QPushButton(centralWidget);
-        saveRight->setObjectName(QString::fromUtf8("saveRight"));
-
-        gridLayout_3->addWidget(saveRight, 3, 0, 1, 1);
-
-        rightLcdNumber = new QLCDNumber(centralWidget);
-        rightLcdNumber->setObjectName(QString::fromUtf8("rightLcdNumber"));
-
-        gridLayout_3->addWidget(rightLcdNumber, 3, 1, 1, 2);
-
-
-        gridLayout_4->addLayout(gridLayout_3, 0, 2, 1, 1);
-
         horizontalLayout = new QHBoxLayout();
         horizontalLayout->setSpacing(6);
         horizontalLayout->setObjectName(QString::fromUtf8("horizontalLayout"));
@@ -253,21 +126,90 @@ public:
 
         gridLayout_4->addLayout(horizontalLayout, 1, 0, 1, 1);
 
-        horizontalLayout_2 = new QHBoxLayout();
-        horizontalLayout_2->setSpacing(6);
-        horizontalLayout_2->setObjectName(QString::fromUtf8("horizontalLayout_2"));
-        left2middle = new QPushButton(centralWidget);
-        left2middle->setObjectName(QString::fromUtf8("left2middle"));
+        gridLayout_3 = new QGridLayout();
+        gridLayout_3->setSpacing(6);
+        gridLayout_3->setObjectName(QString::fromUtf8("gridLayout_3"));
+        rightId = new QComboBox(centralWidget);
+        rightId->setObjectName(QString::fromUtf8("rightId"));
 
-        horizontalLayout_2->addWidget(left2middle);
+        gridLayout_3->addWidget(rightId, 0, 2, 1, 1);
 
-        right2middle = new QPushButton(centralWidget);
-        right2middle->setObjectName(QString::fromUtf8("right2middle"));
+        saveRight = new QPushButton(centralWidget);
+        saveRight->setObjectName(QString::fromUtf8("saveRight"));
 
-        horizontalLayout_2->addWidget(right2middle);
+        gridLayout_3->addWidget(saveRight, 3, 0, 1, 1);
+
+        rightLcdNumber = new QLCDNumber(centralWidget);
+        rightLcdNumber->setObjectName(QString::fromUtf8("rightLcdNumber"));
+
+        gridLayout_3->addWidget(rightLcdNumber, 3, 1, 1, 2);
+
+        openRight = new QPushButton(centralWidget);
+        openRight->setObjectName(QString::fromUtf8("openRight"));
+
+        gridLayout_3->addWidget(openRight, 2, 0, 1, 1);
+
+        right = new QLabel(centralWidget);
+        right->setObjectName(QString::fromUtf8("right"));
+        right->setAlignment(Qt::AlignCenter);
+
+        gridLayout_3->addWidget(right, 0, 0, 1, 2);
+
+        closeRight = new QPushButton(centralWidget);
+        closeRight->setObjectName(QString::fromUtf8("closeRight"));
+
+        gridLayout_3->addWidget(closeRight, 2, 1, 1, 2);
+
+        rightView = new QLabel(centralWidget);
+        rightView->setObjectName(QString::fromUtf8("rightView"));
+
+        gridLayout_3->addWidget(rightView, 1, 0, 1, 3);
+
+        gridLayout_3->setRowStretch(0, 1);
+
+        gridLayout_4->addLayout(gridLayout_3, 0, 2, 1, 1);
+
+        gridLayout = new QGridLayout();
+        gridLayout->setSpacing(6);
+        gridLayout->setObjectName(QString::fromUtf8("gridLayout"));
+        saveLeft = new QPushButton(centralWidget);
+        saveLeft->setObjectName(QString::fromUtf8("saveLeft"));
+
+        gridLayout->addWidget(saveLeft, 4, 0, 1, 1);
+
+        leftLcdNumber = new QLCDNumber(centralWidget);
+        leftLcdNumber->setObjectName(QString::fromUtf8("leftLcdNumber"));
+
+        gridLayout->addWidget(leftLcdNumber, 4, 1, 1, 2);
+
+        closeLeft = new QPushButton(centralWidget);
+        closeLeft->setObjectName(QString::fromUtf8("closeLeft"));
+
+        gridLayout->addWidget(closeLeft, 3, 1, 1, 2);
+
+        left = new QLabel(centralWidget);
+        left->setObjectName(QString::fromUtf8("left"));
+        left->setAlignment(Qt::AlignCenter);
+
+        gridLayout->addWidget(left, 0, 0, 1, 2);
+
+        leftId = new QComboBox(centralWidget);
+        leftId->setObjectName(QString::fromUtf8("leftId"));
+
+        gridLayout->addWidget(leftId, 0, 2, 1, 1);
+
+        openLeft = new QPushButton(centralWidget);
+        openLeft->setObjectName(QString::fromUtf8("openLeft"));
+
+        gridLayout->addWidget(openLeft, 3, 0, 1, 1);
+
+        leftView = new QLabel(centralWidget);
+        leftView->setObjectName(QString::fromUtf8("leftView"));
+
+        gridLayout->addWidget(leftView, 1, 0, 1, 3);
 
 
-        gridLayout_4->addLayout(horizontalLayout_2, 1, 1, 1, 1);
+        gridLayout_4->addLayout(gridLayout, 0, 0, 1, 1);
 
         horizontalLayout_3 = new QHBoxLayout();
         horizontalLayout_3->setSpacing(6);
@@ -284,6 +226,64 @@ public:
 
 
         gridLayout_4->addLayout(horizontalLayout_3, 1, 2, 1, 1);
+
+        gridLayout_2 = new QGridLayout();
+        gridLayout_2->setSpacing(6);
+        gridLayout_2->setObjectName(QString::fromUtf8("gridLayout_2"));
+        saveMiddle = new QPushButton(centralWidget);
+        saveMiddle->setObjectName(QString::fromUtf8("saveMiddle"));
+
+        gridLayout_2->addWidget(saveMiddle, 3, 1, 1, 1);
+
+        openMiddle = new QPushButton(centralWidget);
+        openMiddle->setObjectName(QString::fromUtf8("openMiddle"));
+
+        gridLayout_2->addWidget(openMiddle, 2, 1, 1, 1);
+
+        closeMiddle = new QPushButton(centralWidget);
+        closeMiddle->setObjectName(QString::fromUtf8("closeMiddle"));
+
+        gridLayout_2->addWidget(closeMiddle, 2, 2, 1, 1);
+
+        middleLcdNumber = new QLCDNumber(centralWidget);
+        middleLcdNumber->setObjectName(QString::fromUtf8("middleLcdNumber"));
+
+        gridLayout_2->addWidget(middleLcdNumber, 3, 2, 1, 1);
+
+        middleId = new QComboBox(centralWidget);
+        middleId->setObjectName(QString::fromUtf8("middleId"));
+
+        gridLayout_2->addWidget(middleId, 0, 2, 1, 1);
+
+        middleView = new QLabel(centralWidget);
+        middleView->setObjectName(QString::fromUtf8("middleView"));
+
+        gridLayout_2->addWidget(middleView, 1, 0, 1, 3);
+
+        middle = new QLabel(centralWidget);
+        middle->setObjectName(QString::fromUtf8("middle"));
+        middle->setAlignment(Qt::AlignCenter);
+
+        gridLayout_2->addWidget(middle, 0, 0, 1, 2);
+
+
+        gridLayout_4->addLayout(gridLayout_2, 0, 1, 1, 1);
+
+        horizontalLayout_2 = new QHBoxLayout();
+        horizontalLayout_2->setSpacing(6);
+        horizontalLayout_2->setObjectName(QString::fromUtf8("horizontalLayout_2"));
+        left2middle = new QPushButton(centralWidget);
+        left2middle->setObjectName(QString::fromUtf8("left2middle"));
+
+        horizontalLayout_2->addWidget(left2middle);
+
+        right2middle = new QPushButton(centralWidget);
+        right2middle->setObjectName(QString::fromUtf8("right2middle"));
+
+        horizontalLayout_2->addWidget(right2middle);
+
+
+        gridLayout_4->addLayout(horizontalLayout_2, 1, 1, 1, 1);
 
         MainWindow->setCentralWidget(centralWidget);
         menuBar = new QMenuBar(MainWindow);
@@ -328,24 +328,27 @@ public:
         action_Cloud->setText(QCoreApplication::translate("MainWindow", "\347\202\271\344\272\221", nullptr));
         action_Depth->setText(QCoreApplication::translate("MainWindow", "\346\267\261\345\272\246\345\233\276", nullptr));
         mergeCloud->setText(QCoreApplication::translate("MainWindow", "\345\220\210\345\271\266\347\202\271\344\272\221", nullptr));
-        openLeft->setText(QCoreApplication::translate("MainWindow", "open left", nullptr));
-        closeLeft->setText(QCoreApplication::translate("MainWindow", "close left", nullptr));
-        left->setText(QCoreApplication::translate("MainWindow", "left  id:", nullptr));
-        saveLeft->setText(QCoreApplication::translate("MainWindow", "save left", nullptr));
-        middle->setText(QCoreApplication::translate("MainWindow", "middle id:", nullptr));
-        openMiddle->setText(QCoreApplication::translate("MainWindow", "open middle", nullptr));
-        closeMiddle->setText(QCoreApplication::translate("MainWindow", "close middle", nullptr));
-        saveMiddle->setText(QCoreApplication::translate("MainWindow", "save middle", nullptr));
-        right->setText(QCoreApplication::translate("MainWindow", "right  id:", nullptr));
-        openRight->setText(QCoreApplication::translate("MainWindow", "open right", nullptr));
-        closeRight->setText(QCoreApplication::translate("MainWindow", "close right", nullptr));
-        saveRight->setText(QCoreApplication::translate("MainWindow", "save right", nullptr));
         open->setText(QCoreApplication::translate("MainWindow", "open all", nullptr));
         close->setText(QCoreApplication::translate("MainWindow", "close all", nullptr));
-        left2middle->setText(QCoreApplication::translate("MainWindow", "left-middle", nullptr));
-        right2middle->setText(QCoreApplication::translate("MainWindow", "right-middle", nullptr));
+        saveRight->setText(QCoreApplication::translate("MainWindow", "save right", nullptr));
+        openRight->setText(QCoreApplication::translate("MainWindow", "open right", nullptr));
+        right->setText(QCoreApplication::translate("MainWindow", "right  id:", nullptr));
+        closeRight->setText(QCoreApplication::translate("MainWindow", "close right", nullptr));
+        rightView->setText(QCoreApplication::translate("MainWindow", "TextLabel", nullptr));
+        saveLeft->setText(QCoreApplication::translate("MainWindow", "save left", nullptr));
+        closeLeft->setText(QCoreApplication::translate("MainWindow", "close left", nullptr));
+        left->setText(QCoreApplication::translate("MainWindow", "left  id:", nullptr));
+        openLeft->setText(QCoreApplication::translate("MainWindow", "open left", nullptr));
+        leftView->setText(QCoreApplication::translate("MainWindow", "TextLabel", nullptr));
         check->setText(QCoreApplication::translate("MainWindow", "find corner", nullptr));
         save->setText(QCoreApplication::translate("MainWindow", "save all", nullptr));
+        saveMiddle->setText(QCoreApplication::translate("MainWindow", "save middle", nullptr));
+        openMiddle->setText(QCoreApplication::translate("MainWindow", "open middle", nullptr));
+        closeMiddle->setText(QCoreApplication::translate("MainWindow", "close middle", nullptr));
+        middleView->setText(QCoreApplication::translate("MainWindow", "TextLabel", nullptr));
+        middle->setText(QCoreApplication::translate("MainWindow", "middle id:", nullptr));
+        left2middle->setText(QCoreApplication::translate("MainWindow", "left-middle", nullptr));
+        right2middle->setText(QCoreApplication::translate("MainWindow", "right-middle", nullptr));
         file->setTitle(QCoreApplication::translate("MainWindow", "\346\226\207\344\273\266", nullptr));
         tool->setTitle(QCoreApplication::translate("MainWindow", "\345\267\245\345\205\267", nullptr));
         menu->setTitle(QCoreApplication::translate("MainWindow", "\344\277\235\345\255\230", nullptr));

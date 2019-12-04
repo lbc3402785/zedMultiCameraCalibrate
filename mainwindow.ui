@@ -15,138 +15,6 @@
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QGridLayout" name="gridLayout_4">
-    <item row="0" column="0">
-     <layout class="QGridLayout" name="gridLayout">
-      <item row="0" column="2">
-       <widget class="QComboBox" name="leftId"/>
-      </item>
-      <item row="2" column="0">
-       <widget class="QPushButton" name="openLeft">
-        <property name="text">
-         <string>open left</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="1" colspan="2">
-       <widget class="QPushButton" name="closeLeft">
-        <property name="text">
-         <string>close left</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="1" colspan="2">
-       <widget class="QLCDNumber" name="leftLcdNumber"/>
-      </item>
-      <item row="0" column="0" colspan="2">
-       <widget class="QLabel" name="left">
-        <property name="text">
-         <string>left  id:</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignCenter</set>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
-       <widget class="QPushButton" name="saveLeft">
-        <property name="text">
-         <string>save left</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0" colspan="3">
-       <widget class="QGraphicsView" name="leftView"/>
-      </item>
-     </layout>
-    </item>
-    <item row="0" column="1">
-     <layout class="QGridLayout" name="gridLayout_2">
-      <item row="0" column="0">
-       <widget class="QLabel" name="middle">
-        <property name="text">
-         <string>middle id:</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignCenter</set>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QComboBox" name="middleId"/>
-      </item>
-      <item row="1" column="0" colspan="2">
-       <widget class="QGraphicsView" name="middleView"/>
-      </item>
-      <item row="2" column="0">
-       <widget class="QPushButton" name="openMiddle">
-        <property name="text">
-         <string>open middle</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="1">
-       <widget class="QPushButton" name="closeMiddle">
-        <property name="text">
-         <string>close middle</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
-       <widget class="QPushButton" name="saveMiddle">
-        <property name="text">
-         <string>save middle</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="1">
-       <widget class="QLCDNumber" name="middleLcdNumber"/>
-      </item>
-     </layout>
-    </item>
-    <item row="0" column="2">
-     <layout class="QGridLayout" name="gridLayout_3">
-      <item row="0" column="0" colspan="2">
-       <widget class="QLabel" name="right">
-        <property name="text">
-         <string>right  id:</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignCenter</set>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="2">
-       <widget class="QComboBox" name="rightId"/>
-      </item>
-      <item row="1" column="0" colspan="3">
-       <widget class="QGraphicsView" name="rightView"/>
-      </item>
-      <item row="2" column="0">
-       <widget class="QPushButton" name="openRight">
-        <property name="text">
-         <string>open right</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="1" colspan="2">
-       <widget class="QPushButton" name="closeRight">
-        <property name="text">
-         <string>close right</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
-       <widget class="QPushButton" name="saveRight">
-        <property name="text">
-         <string>save right</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="1" colspan="2">
-       <widget class="QLCDNumber" name="rightLcdNumber"/>
-      </item>
-     </layout>
-    </item>
     <item row="1" column="0">
      <layout class="QHBoxLayout" name="horizontalLayout">
       <item>
@@ -165,19 +33,97 @@
       </item>
      </layout>
     </item>
-    <item row="1" column="1">
-     <layout class="QHBoxLayout" name="horizontalLayout_2">
-      <item>
-       <widget class="QPushButton" name="left2middle">
+    <item row="0" column="2">
+     <layout class="QGridLayout" name="gridLayout_3" rowstretch="1,0,0,0">
+      <item row="0" column="2">
+       <widget class="QComboBox" name="rightId"/>
+      </item>
+      <item row="3" column="0">
+       <widget class="QPushButton" name="saveRight">
         <property name="text">
-         <string>left-middle</string>
+         <string>save right</string>
         </property>
        </widget>
       </item>
-      <item>
-       <widget class="QPushButton" name="right2middle">
+      <item row="3" column="1" colspan="2">
+       <widget class="QLCDNumber" name="rightLcdNumber"/>
+      </item>
+      <item row="2" column="0">
+       <widget class="QPushButton" name="openRight">
         <property name="text">
-         <string>right-middle</string>
+         <string>open right</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0" colspan="2">
+       <widget class="QLabel" name="right">
+        <property name="text">
+         <string>right  id:</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1" colspan="2">
+       <widget class="QPushButton" name="closeRight">
+        <property name="text">
+         <string>close right</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0" colspan="3">
+       <widget class="QLabel" name="rightView">
+        <property name="text">
+         <string>TextLabel</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item row="0" column="0">
+     <layout class="QGridLayout" name="gridLayout">
+      <item row="4" column="0">
+       <widget class="QPushButton" name="saveLeft">
+        <property name="text">
+         <string>save left</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="1" colspan="2">
+       <widget class="QLCDNumber" name="leftLcdNumber"/>
+      </item>
+      <item row="3" column="1" colspan="2">
+       <widget class="QPushButton" name="closeLeft">
+        <property name="text">
+         <string>close left</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0" colspan="2">
+       <widget class="QLabel" name="left">
+        <property name="text">
+         <string>left  id:</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="2">
+       <widget class="QComboBox" name="leftId"/>
+      </item>
+      <item row="3" column="0">
+       <widget class="QPushButton" name="openLeft">
+        <property name="text">
+         <string>open left</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0" colspan="3">
+       <widget class="QLabel" name="leftView">
+        <property name="text">
+         <string>TextLabel</string>
         </property>
        </widget>
       </item>
@@ -196,6 +142,72 @@
        <widget class="QPushButton" name="save">
         <property name="text">
          <string>save all</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item row="0" column="1">
+     <layout class="QGridLayout" name="gridLayout_2">
+      <item row="3" column="1">
+       <widget class="QPushButton" name="saveMiddle">
+        <property name="text">
+         <string>save middle</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QPushButton" name="openMiddle">
+        <property name="text">
+         <string>open middle</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="2">
+       <widget class="QPushButton" name="closeMiddle">
+        <property name="text">
+         <string>close middle</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="2">
+       <widget class="QLCDNumber" name="middleLcdNumber"/>
+      </item>
+      <item row="0" column="2">
+       <widget class="QComboBox" name="middleId"/>
+      </item>
+      <item row="1" column="0" colspan="3">
+       <widget class="QLabel" name="middleView">
+        <property name="text">
+         <string>TextLabel</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0" colspan="2">
+       <widget class="QLabel" name="middle">
+        <property name="text">
+         <string>middle id:</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item row="1" column="1">
+     <layout class="QHBoxLayout" name="horizontalLayout_2">
+      <item>
+       <widget class="QPushButton" name="left2middle">
+        <property name="text">
+         <string>left-middle</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="right2middle">
+        <property name="text">
+         <string>right-middle</string>
         </property>
        </widget>
       </item>
