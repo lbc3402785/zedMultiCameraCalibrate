@@ -64,9 +64,9 @@ private:
 //    cv::Mat leftFrame;
 //    cv::Mat middleFrame;
 //    cv::Mat rightFrame;
-    QTime* leftTimer;
-    QTime* middleTimer;
-    QTime* rightTimer;
+    QTimer* leftTimer;
+    QTimer* middleTimer;
+    QTimer* rightTimer;
     QGraphicsScene* leftScene;
     QGraphicsScene* middleScene;
     QGraphicsScene* rightScene;
@@ -141,10 +141,14 @@ private slots:
     void on_action_Depth_triggered();
     void on_mergeCloud_triggered();
     void on_right2middle_clicked();
-
+public slots:
     void showLeft();
     void showMiddle();
     void showRight();
+//public:
+//    void showLeft(QPixmap pix);
+//    void showMiddle(QPixmap pix);
+//    void showRight(QPixmap pix);
 signals:
     void closeLeftCameraThread();
     void closeMiddleCameraThread();

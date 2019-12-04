@@ -1,7 +1,6 @@
 #ifndef ZEDCAMERATHREAD_H
 #define ZEDCAMERATHREAD_H
 #include <QThread>
-#include <QTimer>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -10,6 +9,7 @@
 #include "threadsafequeue.h"
 #include "settings.h"
 #include "eigenmesh.h"
+
 class ZedCameraThread: public QThread
 {
     Q_OBJECT
@@ -41,6 +41,7 @@ public:
 
     bool getStopSignal() const;
     void setStopSignal(bool value);
+
 public slots:
     void close();
 protected:
@@ -48,7 +49,6 @@ protected:
 private:
     int id;
     ThreadSafeQueue<QPixmap>* showQueue;
-    QTimer* timer;
     bool useSDKParam;
     bool useRectified;
     bool detect;

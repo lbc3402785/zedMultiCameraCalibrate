@@ -2,7 +2,7 @@
 #include <QPixmap>
 #include <QDir>
 #include <QCameraInfo>
-static int interval=600;
+static int interval=50;
 using namespace sl;
 ZedCameraThread::ZedCameraThread(QObject *parent):QThread(parent)
 {
@@ -16,10 +16,6 @@ ZedCameraThread::ZedCameraThread(QObject *parent):QThread(parent)
 
 ZedCameraThread::~ZedCameraThread()
 {
-    if(timer){
-        timer->stop();
-        delete timer;
-    }
 }
 /**
  * ————————————————
@@ -28,12 +24,13 @@ ZedCameraThread::~ZedCameraThread()
  */
 void ZedCameraThread::run()
 {
-    timer=new QTimer();
-    timer->start(interval);
-    connect(timer,&QTimer::timeout,this,&ZedCameraThread::readCamera);
-    this->exec();//此句必须有，否则线程会立即结束
+    while (!stopSignal) {
+        readCamera();
+        msleep(interval);
+    }
 
 }
+
 
 bool ZedCameraThread::getStopSignal() const
 {
@@ -49,7 +46,6 @@ void ZedCameraThread::close()
 {
     std::cout<<id<<" thread close"<<std::endl<<std::flush;
     stopSignal=true;
-    timer->stop();
 }
 
 bool ZedCameraThread::getDetect() const
@@ -253,7 +249,6 @@ void ZedCameraThread::readCamera()
             QPixmap leftPix=QPixmap::fromImage(leftImage);
             showQueue->WaitAndPush(leftPix);
             emit returnQPixmap();
-            //std::cout<<"returnQPixmap"<<std::endl<<std::flush;
         }
     }
 }

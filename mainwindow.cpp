@@ -33,9 +33,14 @@ MainWindow::MainWindow(QWidget *parent) :
     detect=false;
     capturing=false;
 
-    leftTimer=new QTimer();
-    leftTimer->start(interval);
-    connect(leftTimer,&QTimer::timeout,this,&MainWindow::showLeft);
+//    leftTimer=new QTimer(this);
+//    middleTimer=new QTimer(this);
+//    rightTimer=new QTimer(this);
+//    connect(leftTimer,&QTimer::timeout,this,&MainWindow::showLeft);
+//    connect(middleTimer,&QTimer::timeout,this,&MainWindow::showMiddle);
+//    connect(rightTimer,&QTimer::timeout,this,&MainWindow::showRight);
+
+
     connect(ui->open,SIGNAL(clicked()),this,SLOT(openCamera()));
     connect(ui->close,SIGNAL(clicked()),this,SLOT(closeCamera()));
 
@@ -161,14 +166,15 @@ void MainWindow::openLeftZed(int leftId)
         std::cout << leftZed->getCameraInformation().camera_model << " n*" << leftId << " SN " <<
                      leftZed->getCameraInformation().serial_number << " -> Result: " << sl::toString(err) << std::endl;
     zedSetting(leftZed);
-    leftZedCameraThread=new ZedCameraThread();
+    leftZedCameraThread=new ZedCameraThread(this);
     leftZedCameraThread->setId(leftId);
     leftZedCameraThread->setShowQueue(leftShowQueue);
     leftZedCameraThread->zed=leftZed;
     leftZedCameraThread->setSaveMode(saveMode);
     connect(leftZedCameraThread,&ZedCameraThread::returnQPixmap,this,&MainWindow::showLeft);
-    connect(this,&MainWindow::closeLeftCameraThread,leftZedCameraThread,&ZedCameraThread::close);
+    //connect(this,&MainWindow::closeLeftCameraThread,leftZedCameraThread,&ZedCameraThread::close);
     leftZedCameraThread->start();
+
     std::cout<<" openLeftZed done!"<<std::endl<<std::flush;
 }
 
@@ -186,14 +192,15 @@ void MainWindow::openMiddleZed(int middleId)
         std::cout << middleZed->getCameraInformation().camera_model << " n*" << middleId << " SN " <<
                      middleZed->getCameraInformation().serial_number << " -> Result: " << sl::toString(err) << std::endl;
     zedSetting(middleZed);
-    middleZedCameraThread=new ZedCameraThread();
+    middleZedCameraThread=new ZedCameraThread(this);
     middleZedCameraThread->setId(middleId);
     middleZedCameraThread->setShowQueue(middleShowQueue);
     middleZedCameraThread->zed=middleZed;
     middleZedCameraThread->setSaveMode(saveMode);
     connect(middleZedCameraThread,&ZedCameraThread::returnQPixmap,this,&MainWindow::showMiddle);
-    connect(this,&MainWindow::closeMiddleCameraThread,middleZedCameraThread,&ZedCameraThread::close);
+    //connect(this,&MainWindow::closeMiddleCameraThread,middleZedCameraThread,&ZedCameraThread::close);
     middleZedCameraThread->start();
+
     std::cout<<" openMiddleZed done!"<<std::endl<<std::flush;
 }
 
@@ -211,14 +218,15 @@ void MainWindow::openRightZed(int rightId)
         std::cout << rightZed->getCameraInformation().camera_model << " n*" << rightId << " SN " <<
                      rightZed->getCameraInformation().serial_number << " -> Result: " << sl::toString(err) << std::endl;
     zedSetting(rightZed);
-    rightZedCameraThread=new ZedCameraThread();
+    rightZedCameraThread=new ZedCameraThread(this);
     rightZedCameraThread->setId(rightId);
     rightZedCameraThread->setShowQueue(rightShowQueue);
     rightZedCameraThread->zed=rightZed;
     rightZedCameraThread->setSaveMode(saveMode);
     connect(rightZedCameraThread,&ZedCameraThread::returnQPixmap,this,&MainWindow::showRight);
-    connect(this,&MainWindow::closeRightCameraThread,rightZedCameraThread,&ZedCameraThread::close);
+    //connect(this,&MainWindow::closeRightCameraThread,rightZedCameraThread,&ZedCameraThread::close);
     rightZedCameraThread->start();
+
     std::cout<<" openRightZed done!"<<std::endl<<std::flush;
 }
 
@@ -309,12 +317,6 @@ void MainWindow::openCamera()
 
 void MainWindow::closeCamera()
 {
-    ui->leftId->setDisabled(false);
-    ui->middleId->setDisabled(false);
-    ui->rightId->setDisabled(false);
-    leftScene->clear();
-    middleScene->clear();
-    rightScene->clear();
     closeAll();
 }
 void MainWindow::closeAll()
@@ -369,7 +371,6 @@ void MainWindow::on_openLeft_clicked()
     //openLeft(ui->leftId->currentIndex());
     openLeftZed(ui->leftId->currentIndex());
     ui->leftId->setDisabled(true);
-
 }
 
 void MainWindow::closeZed(sl::Camera**zed)
@@ -392,39 +393,48 @@ void MainWindow::closeCameraThead(ZedCameraThread **t)
 
 void MainWindow::closeLeftCamera()
 {
+    ui->leftId->setDisabled(false);
     if(leftZedCameraThread){
-        //emit closeLeftCameraThread();
         leftZedCameraThread->close();
+        //QThread::msleep(1);
         closeCameraThead(&leftZedCameraThread);
     }
     closeZed(&leftZed);
+    leftScene->clear();
+    leftScene->clear();
 }
 
 void MainWindow::closeMiddleCamera()
 {
+    ui->middleId->setDisabled(false);
+
     if(middleZedCameraThread){
-        //emit closeMiddleCameraThread();
         middleZedCameraThread->close();
+        //QThread::msleep(1);
         closeCameraThead(&middleZedCameraThread);
     }
     closeZed(&middleZed);
+    middleScene->clear();
+    middleScene->clear();
 }
 
 void MainWindow::closeRightCamera()
 {
+    ui->rightId->setDisabled(false);
     if(rightZedCameraThread){
-        //emit closeRightCameraThread();
         rightZedCameraThread->close();
+        //QThread::msleep(1);
         closeCameraThead(&rightZedCameraThread);
     }
     closeZed(&rightZed);
+    rightScene->clear();
+    rightScene->clear();
 }
 
 void MainWindow::on_closeLeft_clicked()
 {
-    ui->leftId->setDisabled(false);
-    leftScene->clear();
-    closeLeftCamera();
+
+    closeLeftCamera();  
 }
 
 void MainWindow::on_openRight_clicked()
@@ -440,9 +450,8 @@ void MainWindow::on_openRight_clicked()
 
 void MainWindow::on_closeRight_clicked()
 {
-    ui->rightId->setDisabled(false);
-    rightScene->clear();
-    closeRightCamera();
+
+    closeRightCamera();   
 }
 
 void MainWindow::on_saveLeft_clicked()
@@ -490,9 +499,7 @@ void MainWindow::on_openMiddle_clicked()
 }
 
 void MainWindow::on_closeMiddle_clicked()
-{
-    ui->middleId->setDisabled(false);
-    middleScene->clear();
+{  
     closeMiddleCamera();
 }
 
@@ -832,4 +839,19 @@ void MainWindow::showRight()
         //std::cout<<"showRight"<<std::endl<<std::flush;
     }
 }
+
+//void MainWindow::showLeft(QPixmap pix)
+//{
+//    leftScene->addPixmap(pix);
+//}
+
+//void MainWindow::showMiddle(QPixmap pix)
+//{
+//    middleScene->addPixmap(pix);
+//}
+
+//void MainWindow::showRight(QPixmap pix)
+//{
+//    rightScene->addPixmap(pix);
+//}
 
