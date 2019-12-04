@@ -2,7 +2,7 @@
 #include <QPixmap>
 #include <QDir>
 #include <QCameraInfo>
-static int interval=300;
+static int interval=600;
 using namespace sl;
 ZedCameraThread::ZedCameraThread(QObject *parent):QThread(parent)
 {

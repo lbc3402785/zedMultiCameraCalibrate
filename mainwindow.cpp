@@ -802,7 +802,7 @@ void MainWindow::showLeft()
 {
     QPixmap leftPix;
     if(leftShowQueue->TryPop(leftPix)){
-        leftScene->clear();
+        //leftScene->clear();
         leftScene->addPixmap(leftPix);
         //std::cout<<"showLeft"<<std::endl<<std::flush;
     }
@@ -813,7 +813,7 @@ void MainWindow::showMiddle()
     QPixmap middlePix;
     //middleShowQueue->WaitAndPop(middlePix);
     if(middleShowQueue->TryPop(middlePix)){
-        middleScene->clear();
+        //middleScene->clear();
         middleScene->addPixmap(middlePix);
         //std::cout<<"showMiddle"<<std::endl<<std::flush;
     }
@@ -824,7 +824,7 @@ void MainWindow::showRight()
     QPixmap rightPix;
     //rightShowQueue->WaitAndPop(rightPix);
     if(rightShowQueue->TryPop(rightPix)){
-        rightScene->clear();
+        //rightScene->clear();
         rightScene->addPixmap(rightPix);
         //std::cout<<"showRight"<<std::endl<<std::flush;
     }
