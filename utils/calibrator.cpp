@@ -105,7 +105,7 @@ void Calibrator::calibrateOneCamera()
     result.repError=cv::calibrateCamera(objectPoints,
                                         imagePoints,
                                         imgSize,
-                                        result.instrisincMatrix,
+                                        result.intrinsicMatrix,
                                         result.distortionCoeff,
                                         result.rvecs,
                                         result.tvecs,0|CV_CALIB_FIX_K4|CV_CALIB_FIX_K5);

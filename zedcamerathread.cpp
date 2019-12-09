@@ -2,16 +2,19 @@
 #include <QPixmap>
 #include <QDir>
 #include <QCameraInfo>
-static int interval=50;
+static int interval=30;
 using namespace sl;
 ZedCameraThread::ZedCameraThread(QObject *parent):QThread(parent)
 {
     showQueue=nullptr;
     useSDKParam=true;
-    useRectified=false;
+    useRectified=true;
     depthFactor=1000;
     capturing=false;
     stopSignal=false;
+    pause=false;
+    num=0;
+    detected=false;
 }
 
 ZedCameraThread::~ZedCameraThread()
@@ -25,10 +28,52 @@ ZedCameraThread::~ZedCameraThread()
 void ZedCameraThread::run()
 {
     while (!stopSignal) {
+        if (isInterruptionRequested())
+            return;
         readCamera();
         msleep(interval);
     }
 
+}
+
+EigenMesh ZedCameraThread::getMesh() const
+{
+    return mesh;
+}
+
+void ZedCameraThread::setMesh(const EigenMesh &value)
+{
+    mesh = value;
+}
+
+bool ZedCameraThread::getPause() const
+{
+    return pause;
+}
+
+void ZedCameraThread::setPause(bool value)
+{
+    pause = value;
+}
+
+QString ZedCameraThread::getName() const
+{
+    return name;
+}
+
+void ZedCameraThread::setName(const QString &value)
+{
+    name = value;
+}
+
+bool ZedCameraThread::getCapturing() const
+{
+    return capturing;
+}
+
+void ZedCameraThread::setCapturing(bool value)
+{
+    capturing = value;
 }
 
 
@@ -78,34 +123,79 @@ void ZedCameraThread::setShowQueue(ThreadSafeQueue<QPixmap> *value)
     showQueue = value;
 }
 
-void ZedCameraThread::saveZedData(QString imageDir,QString drawDir,QString outputDir)
+void ZedCameraThread::saveCalibrateData()
 {
-    Settings &sets=Settings::instance();
+    mats.push_back(image.clone());
+    grayMats.push_back(imageGrayMat.clone());
+    num++;
+
+    QString imageDir=sets.getImageDir();
+    QString drawDir=sets.getDrawDir();
+    QString outputDir=sets.getOutputDir();
     QString surffix=sets.getImageSurffix();
     QDir tmp;
-    QString leftImageDir=imageDir+QDir::separator()+"left";
+    QString leftImageDir=imageDir+QDir::separator()+name;
     tmp.mkpath(leftImageDir);
-    QString leftDrawImageDir=drawDir+QDir::separator()+"left";
+    QString leftDrawImageDir=drawDir+QDir::separator()+name;
+    tmp.mkpath(leftDrawImageDir);
+    //save image
+    QString leftPath=leftImageDir+QDir::separator()+name+QString::number(num)+"."+surffix;
+    cv::imwrite(leftPath.toStdString(),image);
+    leftPath=leftDrawImageDir+QDir::separator()+name+QString::number(num)+"."+surffix;
+    cv::imwrite(leftPath.toStdString(),imageDrawMat);
+    std::cout<<"saveCalibrateData() done!"<<std::endl<<std::flush;
+}
+void ZedCameraThread::convertEigenMesh(const cv::Mat& cloud, EigenMesh &mesh)
+{
+    Eigen::Matrix3Xf points;
+    Eigen::Matrix4Xf colors;
+    std::vector<Eigen::Vector3f> pv;
+    std::vector<Eigen::Vector4f> cv;
+    int i,j;
+    for (i = 0; i < cloud.rows; i++) {
+        for (j = 0; j < cloud.cols; j++) {
+            cv::Vec4f f4=cloud.at<cv::Vec4f>(i,j);
+            if (std::isnan(f4[0]) || std::isnan(f4[1]) || std::isnan(f4[2]))continue;
+            if (std::isinf(f4[0]) || std::isinf(f4[1]) || std::isinf(f4[2]))continue;
+            pv.push_back(Eigen::Vector3f(f4[0],f4[1],f4[2]));
+            unsigned char* temp= (unsigned char*)&f4[3];
+            cv.push_back(Eigen::Vector4f((int)temp[0],(int)temp[1],(int)temp[2],255));
+        }
+    }
+    points.resize(3,pv.size());
+    colors.resize(4,cv.size());
+    for(i=0;i<pv.size();i++){
+        points.col(i)=pv[i];
+        colors.col(i)=cv[i];
+    }
+    mesh.setPoints(points);
+    mesh.setColors(colors);
+}
+void ZedCameraThread::saveZedData(QString imageDir,QString drawDir,QString outputDir)
+{
+    QString surffix=sets.getImageSurffix();
+    QDir tmp;
+    QString leftImageDir=imageDir+QDir::separator()+name;
+    tmp.mkpath(leftImageDir);
+    QString leftDrawImageDir=drawDir+QDir::separator()+name;
     tmp.mkpath(leftDrawImageDir);
     switch (saveMode) {
     case SaveMode::IMAGE:
         if(readZedImage(zed,image,true)){
-
             cv::Mat leftTmp;
             cv::cvtColor(image,leftTmp,CV_BGR2RGB);
             if(detect){
                 if(detectAndDrawCorners(image,imageGrayMat,imageDrawMat)){
 
-                    QString leftPath=leftImageDir+QDir::separator()+"left"+QString::number(num)+"."+surffix;
                     cv::cvtColor(imageDrawMat,leftTmp,CV_BGR2RGB);
-                    mats.push_back(image.clone());
-                    grayMats.push_back(imageGrayMat.clone());
-                    num++;
-                    //save image
-                    cv::imwrite(leftPath.toStdString(),image);
-                    leftPath=leftDrawImageDir+QDir::separator()+"left"+QString::number(num)+"."+surffix;
-                    cv::imwrite(leftPath.toStdString(),imageDrawMat);
+                    detected=true;
+                    emit capturedSuccessful();
+
+                }else{
+                    detected=false;
                 }
+            }else{
+                detected=false;
             }
             QImage leftImage=QImage((const uchar*)(leftTmp.data),leftTmp.cols,leftTmp.rows,QImage::Format_RGB888);
             QPixmap leftPix=QPixmap::fromImage(leftImage);
@@ -115,7 +205,7 @@ void ZedCameraThread::saveZedData(QString imageDir,QString drawDir,QString outpu
         break;
     case SaveMode::DEPTH:
         if(readZedDepth(zed,depth,true)){
-            QString leftDepthPath=outputDir+QDir::separator()+"leftDepth.png";
+            QString leftDepthPath=outputDir+QDir::separator()+name+"Depth.png";
             saveDepth(depth,leftDepthPath.toStdString());
             std::cout<<"save depth "<<leftDepthPath.toStdString()<<" done!"<<std::endl;
         }
@@ -123,8 +213,10 @@ void ZedCameraThread::saveZedData(QString imageDir,QString drawDir,QString outpu
     case SaveMode::CLOUD:
         cv::Mat leftCloud;
         if(readZedCloud(zed,leftCloud,true)){
-            QString leftCloudPath=outputDir+QDir::separator()+"left.obj";
-            saveCloud(leftCloud,mesh,leftCloudPath.toStdString());
+            convertEigenMesh(leftCloud,mesh);
+            std::cout<<"get mesh done! "<<std::endl;
+            //            QString leftCloudPath=outputDir+QDir::separator()+name+".obj";
+            //            saveCloud(leftCloud,mesh,leftCloudPath.toStdString());
         }
         break;
     }
@@ -235,7 +327,19 @@ bool ZedCameraThread::detectAndDrawCorners(cv::Mat &image, cv::Mat &grayImage, c
 
 void ZedCameraThread::readCamera()
 {
-    if(capturing)return;
+    if(pause)return;
+    if(capturing){
+        QString imageDir=sets.getImageDir();
+        QString drawDir=sets.getDrawDir();
+        QString outputDir=sets.getOutputDir();
+        QDir tmp;
+        tmp.mkpath(imageDir);
+        tmp.mkpath(drawDir);
+        saveZedData(imageDir,drawDir,outputDir);
+        //std::cout<<"saveZedData done!"<<std::endl<<std::flush;
+        capturing=false;
+        return;
+    }
     if(!stopSignal&&showQueue){
         if (readZedImage(zed,image)) {
             cv::Mat leftTmp;
@@ -266,7 +370,7 @@ void ZedCameraThread::saveCloud(cv::Mat cloud,EigenMesh& mesh, std::string saveP
     float zmin = 65536;
     float  zmax = -65535;
     int i,j;
-    std::cout<<" cloud.rows:"<< cloud.rows<<" cloud.cols:"<< cloud.cols<<std::endl<<std::flush;
+
     for (i = 0; i < cloud.rows; i++) {
         for (j = 0; j < cloud.cols; j++) {
             cv::Vec4f f4=cloud.at<cv::Vec4f>(i,j);
@@ -293,4 +397,5 @@ void ZedCameraThread::saveCloud(cv::Mat cloud,EigenMesh& mesh, std::string saveP
     }
     mesh.setPoints(points);
     mesh.setColors(colors);
+    std::cout<<"savePath:"<<savePath<<" cloud.rows:"<< cloud.rows<<" cloud.cols:"<< cloud.cols<<std::endl<<std::flush;
 }

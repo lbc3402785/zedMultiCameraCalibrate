@@ -12,7 +12,7 @@ public:
     static void zRotation180(Eigen::Matrix<Type, 3, Eigen::Dynamic>& points);
     static Eigen::Matrix<Type, 3, 3> computeCovariance(Eigen::Matrix<Type, 3, Eigen::Dynamic> points,Eigen::Matrix<Type, 3, 1> center);
     static void svdDecomposition(Eigen::Matrix<Type, 3,3> &A,Eigen::Matrix<Type, 3, 3> &U,Eigen::Matrix<Type, 3, 3> &S,Eigen::Matrix<Type, 3, 3> &V);
-    static void saveEigenPoints(Eigen::Matrix<Type,3,Eigen::Dynamic>&points,Eigen::Matrix4Xi& colors,std::string savePath);
+    static void saveEigenPoints(Eigen::Matrix<Type,3,Eigen::Dynamic>&points,Eigen::Matrix4Xf& colors,std::string savePath);
     static Type computeScale(Eigen::Matrix<Type,3,Eigen::Dynamic> points);
     static Eigen::Matrix3Xf computeFaceNormals( Eigen::Matrix3Xf points, Eigen::Matrix3Xi faces);
     static Eigen::SparseMatrix<float> computeFaceNormalsWeight(int64_t vnum, Eigen::Matrix3Xi faces);
@@ -60,7 +60,7 @@ void EigenFunctions<Type>::svdDecomposition(Eigen::Matrix<Type, 3, 3> &A, Eigen:
 }
 
 template<typename Type>
-void EigenFunctions<Type>::saveEigenPoints(Eigen::Matrix<Type, 3, Eigen::Dynamic>& points,Eigen::Matrix4Xi& colors, std::string savePath)
+void EigenFunctions<Type>::saveEigenPoints(Eigen::Matrix<Type, 3, Eigen::Dynamic>& points,Eigen::Matrix4Xf& colors, std::string savePath)
 {
     std::ofstream out(savePath);
     if(!out){

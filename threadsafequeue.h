@@ -11,7 +11,7 @@ template<class T, class Container = std::queue<T>>
 class ThreadSafeQueue {
 public:
     ThreadSafeQueue(){
-        size=10;
+        size=1;
     }
     ThreadSafeQueue(int size):size(size){
     }

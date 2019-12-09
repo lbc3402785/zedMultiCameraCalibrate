@@ -6,7 +6,7 @@ class CalibrateResult
 {
 public:
     CalibrateResult();
-    cv::Mat instrisincMatrix;
+    cv::Mat intrinsicMatrix;
     cv::Mat distortionCoeff;
     std::vector<cv::Mat> rvecs;
     std::vector<cv::Mat> tvecs;
@@ -18,6 +18,7 @@ public:
     cv::Size imageSize;
     bool saveCameraParams(std::string filename,int flags);
     bool saveRelativeParams(std::string filename,int flags);
+    bool loadRelativeCameraParams(std::string filename);
 };
 
 #endif // CALIBRATERESULT_H

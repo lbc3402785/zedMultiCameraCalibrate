@@ -3,7 +3,7 @@
 CalibrateResult::CalibrateResult()
 {
     aspectRatio=1.0;
-    instrisincMatrix=cv::Mat::eye(3,3,CV_64F);
+    intrinsicMatrix=cv::Mat::eye(3,3,CV_64F);
     distortionCoeff=cv::Mat::zeros(4,1,CV_64F);
 }
 
@@ -37,7 +37,7 @@ bool CalibrateResult::saveCameraParams(std::string filename,int flags)
 
     fs << "flags" << flags;
 
-    fs << "camera_matrix" << instrisincMatrix;
+    fs << "camera_matrix" << intrinsicMatrix;
     fs << "distortion_coefficients" << distortionCoeff;
 
     fs << "avg_reprojection_error" << repError;
@@ -79,5 +79,18 @@ bool CalibrateResult::saveRelativeParams(std::string filename, int flags)
 
     fs << "rms" << rms;
 
+    return true;
+}
+
+bool CalibrateResult::loadRelativeCameraParams(std::string filename)
+{
+    using namespace cv;
+    FileStorage fs(filename, FileStorage::READ);
+    if(!fs.isOpened())
+        return false;
+    fs["R"]>>R;
+    fs["T"]>>T;
+    std::cout<< "R:" << R;
+    std::cout<< "T:" << T;
     return true;
 }

@@ -147,6 +147,7 @@ void StereoCalibrator::calRelative()
 
 
     if(!useSDKParam){
+        std::cout<<"calsrc2dstRt"<<std::endl<<std::flush;
         std::vector<cv::Mat> src2dstRvecs;
         std::vector<cv::Mat> src2dstTvecs;
         for(int i=0;i<num;i++)
@@ -160,7 +161,7 @@ void StereoCalibrator::calRelative()
             }
         }
     }
-
+    std::cout<<"begin fix data..."<<std::endl<<std::flush;
 //    num=src2dstRvecs.size();
     const std::vector<std::vector<cv::Point3f> >& srcfullObjects=srcCalibrator.getFullObjectPoints();
     const std::vector<std::vector<cv::Point2f>>& srcfullImagePoints=srcCalibrator.getFullImagePoints();
@@ -183,9 +184,9 @@ void StereoCalibrator::calRelative()
         double rms = cv::stereoCalibrate(objectPoint,   //vector<vector<point3f>> 型的数据结构，存储标定角点在世界坐标系中的位置
             imagePoint1,                             //vector<vector<point2f>> 型的数据结构，存储标定角点在第一个摄像机下的投影后的亚像素坐标
             imagePoint2,                             //vector<vector<point2f>> 型的数据结构，存储标定角点在第二个摄像机下的投影后的亚像素坐标
-            srcResult.instrisincMatrix,                           //输入/输出型的第一个摄像机的相机矩阵。如果CV_CALIB_USE_INTRINSIC_GUESS , CV_CALIB_FIX_ASPECT_RATIO ,CV_CALIB_FIX_INTRINSIC , or CV_CALIB_FIX_FOCAL_LENGTH其中的一个或多个标志被设置，该摄像机矩阵的一些或全部参数需要被初始化
+            srcResult.intrinsicMatrix,                           //输入/输出型的第一个摄像机的相机矩阵。如果CV_CALIB_USE_INTRINSIC_GUESS , CV_CALIB_FIX_ASPECT_RATIO ,CV_CALIB_FIX_INTRINSIC , or CV_CALIB_FIX_FOCAL_LENGTH其中的一个或多个标志被设置，该摄像机矩阵的一些或全部参数需要被初始化
             srcResult.distortionCoeff,                              //第一个摄像机的输入/输出型畸变向量。根据矫正模型的不同，输出向量长度由标志决定
-            dstResult.instrisincMatrix,                           //输入/输出型的第二个摄像机的相机矩阵。参数意义同第一个相机矩阵相似
+            dstResult.intrinsicMatrix,                           //输入/输出型的第二个摄像机的相机矩阵。参数意义同第一个相机矩阵相似
             dstResult.distortionCoeff,                              //第一个摄像机的输入/输出型畸变向量。根据矫正模型的不同，输出向量长度由标志决定
             srcResult.imageSize,           //图像的大小
             R,                                       //输出型，第一和第二个摄像机之间的旋转矩阵
@@ -193,14 +194,15 @@ void StereoCalibrator::calRelative()
             E,                                       //输出本征矩阵
             F,                                       //输出基础矩阵
             useSDKParam?cv::CALIB_FIX_INTRINSIC:cv::CALIB_USE_INTRINSIC_GUESS,
-            cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 100, 1e-5));
+            cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 100, 1e-6));
        srcResult.saveCameraParams(srcCalibrator.getOutputFileName(),srcCalibrator.getCalibrationFlags());
        dstResult.saveCameraParams(dstCalibrator.getOutputFileName(),dstCalibrator.getCalibrationFlags());
        relative.R=R;
        relative.T=T;
        relative.rms=rms;
        relative.saveRelativeParams(relativeOutputFileName,calibrationFlags);
-       std::cout<<"R:"<<R<<std::endl<<std::flush;
+       std::cout<<"R:"<<R<<std::endl<<std::flush;\
+       std::cout<<"rms:"<<rms<<std::endl<<std::flush;
        //std::cout<<"euler:"<<rot2euler(R)<<std::endl<<std::flush;
        std::cout<<"T:"<<T<<std::endl<<std::flush;
        std::cout<<"stereo calibrate done!"<<std::endl<<std::flush;

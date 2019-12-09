@@ -12,6 +12,7 @@
 #include "utils/stereocalibrator.h"
 #include <QThread>
 #include <QTimer>
+#include <atomic>
 #include "zedcamerathread.h"
 namespace Ui {
 class MainWindow;
@@ -30,6 +31,7 @@ public:
     void closeLeftCamera();
     void closeMiddleCamera();
     void closeRightCamera();
+    std::atomic<int> threadCount;
 private:
     void zedSetting(sl::Camera* zed);
     bool checkCameraId();
@@ -98,12 +100,7 @@ private:
 
     float depthFactor;
     Settings& sets=Settings::instance();
-    std::vector<cv::Mat> leftMats;
-    std::vector<cv::Mat> leftGrayMats;
-    std::vector<cv::Mat> middleMats;
-    std::vector<cv::Mat> middleGrayMats;
-    std::vector<cv::Mat> rightMats;
-    std::vector<cv::Mat> rightGrayMats;
+
     //void openLeft(int leftId);
     void openLeftZed(int leftId);
 //    void openMiddle(int middleId);
@@ -119,6 +116,7 @@ private:
 
     void applyRigidTransform(Eigen::Matrix3Xf& cloud,CalibrateResult relative);
     void convertEigenMesh(const cv::Mat& cloud,EigenMesh& mesh);
+    void updateSaveMode();
 private slots:
     void openCamera();
     void closeCamera();
@@ -145,6 +143,7 @@ public slots:
     void showLeft();
     void showMiddle();
     void showRight();
+    void captureDone();
 //public:
 //    void showLeft(QPixmap pix);
 //    void showMiddle(QPixmap pix);
@@ -153,6 +152,14 @@ signals:
     void closeLeftCameraThread();
     void closeMiddleCameraThread();
     void closeRightCameraThread();
+
+    void canLeftZedSaveCalibrateData();
+    void canMiddleZedSaveCalibrateData();
+    void canRightZedSaveCalibrateData();
+
+    // QWidget interface
+protected:
+    void closeEvent(QCloseEvent *event);
 };
 
 #endif // MAINWINDOW_H
