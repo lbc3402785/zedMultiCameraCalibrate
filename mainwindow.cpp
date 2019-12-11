@@ -49,6 +49,7 @@ MainWindow::MainWindow(QWidget *parent) :
     //    initParams.coordinate_units = UNIT_METER;
     initParams.coordinate_units =UNIT_MILLIMETER;
     initParams.coordinate_system = COORDINATE_SYSTEM_IMAGE;
+    //initParams.depth_mode=DEPTH_MODE_MEDIUM;
     runtime_parameters.sensing_mode = SENSING_MODE_STANDARD;
     depthFactor=1000;
     std::vector<sl::DeviceProperties> devList = sl::Camera::getDeviceList();

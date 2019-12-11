@@ -11,7 +11,6 @@
 #include <sl/Camera.hpp>
 #include "utils/stereocalibrator.h"
 #include <QThread>
-#include <QTimer>
 #include <atomic>
 #include "zedcamerathread.h"
 namespace Ui {

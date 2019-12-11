@@ -31,6 +31,7 @@ private:
     void calRelative();
     std::string relativeOutputFileName;
     bool useSDKParam;
+    float eps;
 };
 
 #endif // STEREOCALIBRATOR_H
